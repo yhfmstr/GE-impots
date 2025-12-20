@@ -1,0 +1,41 @@
+# User data - CONFIDENTIAL - Never commit
+**/user-data/
+**/user-data/**
+
+# Personal documents
+**/*.pdf.extracted
+**/extractions/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Sensitive configuration
+*.env
+*.env.local
+config.local.json
+
+# Backup files
+*.backup
+*.old

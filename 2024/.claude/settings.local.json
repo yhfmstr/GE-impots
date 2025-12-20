@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(python split_pdf.py:*)",
+      "Bash(dir \"C:\\\\Cursor\\\\GE-impots\\\\2024\\\\knowledge\\\\chapters\" /B)"
+    ]
+  }
+}

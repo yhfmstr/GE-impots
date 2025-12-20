@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.getax.ch)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Geneva Tax Declaration Assistant 2024\n\nComplete knowledge base for GE-impots Claude Code plugin:\n- Tax brackets \\(baremes-2024.md\\) with ICC/IFD rates\n- Real estate \\(immobilier.md\\) with forfait, abattement, IIC\n- Deductions \\(deductions-2024.md\\) with all limits\n- Pension/pillar system \\(prevoyance.md\\)\n- Professional fees \\(frais-professionnels.md\\)\n- Wealth/fortune \\(fortune.md\\)\n- Self-employment \\(activite-independante.md\\)\n- Taxation codes \\(taxation-codes.md\\)\n\nAgent prompts for specialized tax experts.\nAll values verified against official 2024 Geneva tax guide PDF.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
