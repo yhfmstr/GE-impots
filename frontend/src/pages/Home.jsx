@@ -3,30 +3,30 @@ import { MessageSquare, FileText, Upload, Calculator, ArrowRight, CheckCircle } 
 
 const features = [
   {
-    icon: MessageSquare,
-    title: 'Assistant fiscal intelligent',
-    description: 'Posez vos questions à notre expert fiscal alimenté par IA',
-    link: '/chat',
-    color: 'blue'
-  },
-  {
     icon: FileText,
-    title: 'Questionnaire guidé',
-    description: 'Remplissez votre déclaration étape par étape',
+    title: 'Déclaration pas à pas',
+    description: 'Suivez le guide avec les codes GeTax et importez vos documents',
     link: '/declaration',
     color: 'green'
   },
   {
+    icon: MessageSquare,
+    title: 'Assistant fiscal',
+    description: 'Posez vos questions à notre expert alimenté par IA',
+    link: '/chat',
+    color: 'blue'
+  },
+  {
     icon: Upload,
-    title: 'Import de documents',
-    description: 'Téléchargez vos certificats et justificatifs',
+    title: 'Mes documents',
+    description: 'Consultez l\'historique de vos documents importés',
     link: '/documents',
     color: 'purple'
   },
   {
     icon: Calculator,
-    title: 'Calcul d\'impôts',
-    description: 'Estimez vos impôts ICC et IFD 2024',
+    title: 'Estimation d\'impôts',
+    description: 'Calculez vos impôts ICC et IFD 2024',
     link: '/results',
     color: 'red'
   }

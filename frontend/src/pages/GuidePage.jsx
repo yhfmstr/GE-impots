@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, MessageSquare, ChevronRight, AlertCircle, FileText, AlertTriangle, Upload, Loader2, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3002/api';
@@ -105,6 +104,7 @@ export default function GuidePage() {
   const [uploadSuccess, setUploadSuccess] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadedDocTypes, setUploadedDocTypes] = useState([]);
 
   // Load data from localStorage (saved by questionnaire)
   useEffect(() => {
@@ -113,7 +113,17 @@ export default function GuidePage() {
       setUserData(JSON.parse(saved));
       setHasData(true);
     }
+    // Load uploaded document types
+    const extractions = JSON.parse(localStorage.getItem('documentExtractions') || '[]');
+    const docTypes = [...new Set(extractions.map(e => e.documentType))];
+    setUploadedDocTypes(docTypes);
   }, []);
+
+  // Get missing documents for current page
+  const getMissingDocuments = () => {
+    if (!selectedPage.documentTypes) return [];
+    return selectedPage.documentTypes.filter(dt => !uploadedDocTypes.includes(dt));
+  };
 
   const calculateForfait = (gross, avs, lpp, type) => {
     const base = gross - avs - lpp;
@@ -239,6 +249,9 @@ export default function GuidePage() {
         });
         localStorage.setItem('documentExtractions', JSON.stringify(extractions));
 
+        // Update uploaded doc types
+        setUploadedDocTypes(prev => [...new Set([...prev, uploadDocType])]);
+
         setUploadSuccess({
           documentName: response.data.documentName,
           fieldsExtracted: Object.keys(response.data.data).filter(k =>
@@ -256,15 +269,17 @@ export default function GuidePage() {
     }
   };
 
+  const missingDocs = getMissingDocuments();
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <FileText className="w-7 h-7 text-red-600" />
-          Guide GeTax pas à pas
+          Déclaration d'impôts 2024
         </h1>
         <p className="text-gray-600 mt-1">
-          Suivez ce guide pendant que vous remplissez votre déclaration sur ge.ch
+          Suivez ce guide rubrique par rubrique et importez vos documents
         </p>
       </div>
 
@@ -273,16 +288,10 @@ export default function GuidePage() {
         <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-medium text-amber-900">Aucune donnée enregistrée</h3>
+            <h3 className="font-medium text-amber-900">Commencez par importer vos documents</h3>
             <p className="text-sm text-amber-800 mt-1">
-              Remplissez d'abord le questionnaire pour voir vos valeurs personnalisées.
+              Téléchargez vos certificats et attestations pour remplir automatiquement les rubriques.
             </p>
-            <Link
-              to="/declaration"
-              className="inline-block mt-2 text-sm font-medium text-amber-700 hover:text-amber-900"
-            >
-              Aller au questionnaire →
-            </Link>
           </div>
         </div>
       )}
@@ -302,6 +311,27 @@ export default function GuidePage() {
           ))}
         </select>
         <p className="text-sm text-gray-500 mt-2">{selectedPage.description}</p>
+
+        {/* Missing documents hint */}
+        {missingDocs.length > 0 && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              <span className="font-medium">Documents recommandés:</span>{' '}
+              {missingDocs.map((dt, i) => (
+                <span key={dt}>
+                  {DOCUMENT_TYPE_NAMES[dt]}
+                  {i < missingDocs.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </p>
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Importer un document →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Document Upload Section */}

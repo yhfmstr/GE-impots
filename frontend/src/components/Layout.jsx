@@ -1,11 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { MessageSquare, FileText, Upload, Home, Calculator, ClipboardList } from 'lucide-react';
+import { MessageSquare, FileText, Upload, Home, Calculator } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Accueil' },
   { path: '/chat', icon: MessageSquare, label: 'Assistant' },
   { path: '/declaration', icon: FileText, label: 'Déclaration' },
-  { path: '/guide', icon: ClipboardList, label: 'Guide GeTax' },
   { path: '/documents', icon: Upload, label: 'Documents' },
   { path: '/results', icon: Calculator, label: 'Résultats' },
 ];
