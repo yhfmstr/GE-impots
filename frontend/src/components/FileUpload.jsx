@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Upload, File, X, CheckCircle, AlertCircle } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3002/api';
+import { uploadApi } from '@/lib/api';
 
 const CATEGORIES = [
   { id: 'certificats-salaire', name: 'Certificats de salaire', icon: '📄' },
@@ -28,7 +26,7 @@ export default function FileUpload() {
     }
   }, []);
 
-  const uploadFile = async (file) => {
+  const uploadFile = useCallback(async (file) => {
     setUploading(true);
     setError(null);
 
@@ -37,7 +35,7 @@ export default function FileUpload() {
     formData.append('category', selectedCategory);
 
     try {
-      const response = await axios.post(`${API_URL}/upload`, formData, {
+      const response = await uploadApi.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -47,17 +45,18 @@ export default function FileUpload() {
         status: 'success'
       }]);
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors du téléchargement');
+      const errorMsg = err.response?.data?.error || err.message || 'Erreur lors du téléchargement';
+      setError(errorMsg);
       setUploadedFiles(prev => [...prev, {
         originalName: file.name,
         id: Date.now(),
         status: 'error',
-        error: err.response?.data?.error || 'Erreur'
+        error: errorMsg
       }]);
     } finally {
       setUploading(false);
     }
-  };
+  }, [selectedCategory]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -67,7 +66,7 @@ export default function FileUpload() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       uploadFile(e.dataTransfer.files[0]);
     }
-  }, [selectedCategory]);
+  }, [uploadFile]);
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {

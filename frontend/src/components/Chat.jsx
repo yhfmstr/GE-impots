@@ -1,30 +1,24 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
-const API_URL = 'http://localhost:3002/api';
+// Maximum messages to keep in memory to prevent unbounded growth
+const MAX_MESSAGES = 100;
 
 export default function Chat({ initialContext = [] }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Bonjour! Je suis votre assistant fiscal pour la déclaration d\'impôts genevoise 2024. Comment puis-je vous aider?'
+      content: 'Bonjour! Je suis votre assistant fiscal intelligent pour la déclaration d\'impôts genevoise 2024. Je peux vous aider sur tous les sujets: revenus, déductions, fortune, immobilier, et GeTax. Comment puis-je vous aider?'
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [agent, setAgent] = useState('tax-coordinator');
   const messagesEndRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,55 +28,64 @@ export default function Chat({ initialContext = [] }) {
     scrollToBottom();
   }, [messages]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel any pending request on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Helper to add message with bounded array
+  const addMessage = useCallback((message) => {
+    setMessages(prev => {
+      const updated = [...prev, message];
+      // Keep only the last MAX_MESSAGES to prevent memory issues
+      return updated.length > MAX_MESSAGES ? updated.slice(-MAX_MESSAGES) : updated;
+    });
+  }, []);
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    addMessage({ role: 'user', content: userMessage });
     setLoading(true);
 
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
     try {
-      const response = await axios.post(`${API_URL}/chat`, {
+      const response = await api.post('/chat', {
         message: userMessage,
-        context: messages.slice(-10), // Send last 10 messages for context
-        agent
+        context: messages.slice(-10) // Send last 10 messages for context
+      }, {
+        signal: abortControllerRef.current.signal
       });
 
-      setMessages(prev => [...prev, { role: 'assistant', content: response.data.content }]);
+      // Check if component is still mounted (controller not aborted)
+      if (!abortControllerRef.current.signal.aborted) {
+        addMessage({ role: 'assistant', content: response.data.content });
+      }
     } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Désolé, une erreur s\'est produite. Veuillez réessayer.'
-      }]);
+      // Don't show error if request was intentionally aborted
+      if (error.name === 'CanceledError' || error.name === 'AbortError') {
+        return;
+      }
+      const errorMessage = error.message || 'Désolé, une erreur s\'est produite. Veuillez réessayer.';
+      addMessage({ role: 'assistant', content: errorMessage });
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
   return (
     <Card className="flex flex-col h-[calc(100vh-12rem)]">
-      {/* Agent Selector */}
-      <div className="p-4 border-b border-gray-200">
-        <Select value={agent} onValueChange={setAgent}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tax-coordinator">Coordinateur fiscal (général)</SelectItem>
-            <SelectItem value="getax-guide">Guide GeTax pas à pas</SelectItem>
-            <SelectItem value="revenus-expert">Expert revenus</SelectItem>
-            <SelectItem value="deductions-expert">Expert déductions</SelectItem>
-            <SelectItem value="fortune-expert">Expert fortune</SelectItem>
-            <SelectItem value="immobilier-expert">Expert immobilier</SelectItem>
-            <SelectItem value="optimizer">Optimiseur fiscal</SelectItem>
-            <SelectItem value="compliance-checker">Vérificateur conformité</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Messages */}
       <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (

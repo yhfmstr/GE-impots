@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw } from 'lucide-react';
-import axios from 'axios';
+import { Upload, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw, Sparkles } from 'lucide-react';
+import api, { uploadApi } from '@/lib/api';
+import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,17 +22,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const API_URL = 'http://localhost:3002/api';
-
 export default function DocumentsPage() {
   const [documentTypes, setDocumentTypes] = useState([]);
   const [selectedType, setSelectedType] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [extractions, setExtractions] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState(null);
   const [expandedExtraction, setExpandedExtraction] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Auto-detection state with file tracking to prevent race conditions
+  const [autoDetect, setAutoDetect] = useState(true);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [pendingFileId, setPendingFileId] = useState(null);
 
   useEffect(() => {
     loadDocumentTypes();
@@ -40,26 +46,28 @@ export default function DocumentsPage() {
 
   const loadDocumentTypes = async () => {
     try {
-      const response = await axios.get(`${API_URL}/documents/types`);
+      const response = await api.get('/documents/types');
       setDocumentTypes(response.data);
       if (response.data.length > 0) {
         setSelectedType(response.data[0].id);
       }
     } catch (err) {
-      console.error('Error loading document types:', err);
+      setError('Impossible de charger les types de documents');
     }
   };
 
   const loadExtractions = () => {
-    const saved = localStorage.getItem('documentExtractions');
-    if (saved) {
-      setExtractions(JSON.parse(saved));
+    try {
+      const saved = loadSecure(STORAGE_KEYS.EXTRACTIONS, []);
+      setExtractions(Array.isArray(saved) ? saved : []);
+    } catch {
+      setExtractions([]);
     }
   };
 
   const saveExtractions = (newExtractions) => {
     setExtractions(newExtractions);
-    localStorage.setItem('documentExtractions', JSON.stringify(newExtractions));
+    saveSecure(STORAGE_KEYS.EXTRACTIONS, newExtractions);
   };
 
   const handleDrag = useCallback((e) => {
@@ -79,7 +87,7 @@ export default function DocumentsPage() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
-  }, [selectedType]);
+  }, [autoDetect, selectedType]);
 
   const handleFileInput = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -87,21 +95,85 @@ export default function DocumentsPage() {
     }
   };
 
+  // Main file handler - either auto-detect or use selected type
   const handleFile = async (file) => {
-    if (!selectedType) {
-      setError('Veuillez sélectionner un type de document');
-      return;
-    }
+    setError(null);
 
+    // Generate unique ID for this file upload to prevent race conditions
+    const fileId = Date.now();
+
+    if (autoDetect) {
+      // Auto-detect document type first
+      setDetecting(true);
+      setPendingFile(file);
+      setPendingFileId(fileId);
+
+      const formData = new FormData();
+      formData.append('document', file);
+
+      try {
+        const response = await uploadApi.post('/documents/extract-auto', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        // Check if this is still the current pending file (race condition guard)
+        setPendingFileId(currentId => {
+          if (currentId !== fileId) {
+            // A newer file was uploaded, ignore this result
+            return currentId;
+          }
+
+          if (response.data.success && response.data.detectedType) {
+            // Show confirmation dialog
+            setDetectionResult({
+              ...response.data,
+              fileName: file.name,
+              fileId
+            });
+          } else {
+            // Detection failed, ask user to select manually
+            setDetectionResult({
+              success: false,
+              error: response.data.error || 'Impossible de détecter automatiquement le type',
+              fileName: file.name,
+              fileId
+            });
+          }
+          return currentId;
+        });
+      } catch (err) {
+        // Only show error if this is still the current file
+        setPendingFileId(currentId => {
+          if (currentId === fileId) {
+            setError(err.response?.data?.error || err.message || 'Erreur lors de la détection');
+            setPendingFile(null);
+          }
+          return currentId;
+        });
+      } finally {
+        setDetecting(false);
+      }
+    } else {
+      // Direct extraction with selected type
+      if (!selectedType) {
+        setError('Veuillez sélectionner un type de document');
+        return;
+      }
+      await extractDocument(file, selectedType);
+    }
+  };
+
+  // Extract document with confirmed type
+  const extractDocument = async (file, documentType) => {
     setUploading(true);
     setError(null);
 
     const formData = new FormData();
     formData.append('document', file);
-    formData.append('documentType', selectedType);
+    formData.append('documentType', documentType);
 
     try {
-      const response = await axios.post(`${API_URL}/documents/extract`, formData, {
+      const response = await uploadApi.post('/documents/extract', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -121,22 +193,50 @@ export default function DocumentsPage() {
         setError(response.data.error || 'Erreur lors de l\'extraction');
       }
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err.response?.data?.error || 'Erreur lors du téléchargement');
+      setError(err.response?.data?.error || err.message || 'Erreur lors du téléchargement');
     } finally {
       setUploading(false);
+      setPendingFile(null);
+      setDetectionResult(null);
     }
   };
 
+  // Confirm detected type and extract
+  const confirmDetection = async () => {
+    if (!pendingFile || !detectionResult?.detectedType) return;
+    await extractDocument(pendingFile, detectionResult.detectedType);
+  };
+
+  // Change detected type before confirming
+  const changeDetectedType = (newType) => {
+    setDetectionResult(prev => ({
+      ...prev,
+      detectedType: newType,
+      detectedTypeName: documentTypes.find(t => t.id === newType)?.name || newType,
+      confidence: 1 // User selected, so 100% confidence
+    }));
+  };
+
+  // Cancel detection and clear pending file
+  const cancelDetection = () => {
+    setDetectionResult(null);
+    setPendingFile(null);
+    setPendingFileId(null);
+  };
+
   const applyExtractedData = (data) => {
-    const existing = JSON.parse(localStorage.getItem('taxDeclarationData') || '{}');
-    const merged = { ...existing };
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        merged[key] = value;
-      }
-    });
-    localStorage.setItem('taxDeclarationData', JSON.stringify(merged));
+    try {
+      const existing = loadSecure(STORAGE_KEYS.TAX_DATA, {});
+      const merged = { ...existing };
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          merged[key] = value;
+        }
+      });
+      saveSecure(STORAGE_KEYS.TAX_DATA, merged);
+    } catch {
+      // Silent fail for storage errors
+    }
   };
 
   const confirmDelete = (extraction) => {
@@ -161,6 +261,12 @@ export default function DocumentsPage() {
     return value;
   };
 
+  const getConfidenceColor = (confidence) => {
+    if (confidence >= 0.9) return 'text-green-600';
+    if (confidence >= 0.7) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
@@ -170,22 +276,44 @@ export default function DocumentsPage() {
         </p>
       </div>
 
-      {/* Document Type Selector */}
+      {/* Auto-detection toggle */}
       <Card className="mb-6">
-        <CardContent className="p-6">
-          <Label className="mb-2 block">Type de document à analyser</Label>
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionner un type" />
-            </SelectTrigger>
-            <SelectContent>
-              {documentTypes.map(type => (
-                <SelectItem key={type.id} value={type.id}>
-                  {type.name} - {type.description}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Sparkles className={`w-5 h-5 ${autoDetect ? 'text-purple-600' : 'text-gray-400'}`} />
+              <div>
+                <Label className="font-medium">Détection automatique</Label>
+                <p className="text-sm text-gray-500">L'IA identifie le type de document pour vous</p>
+              </div>
+            </div>
+            <Button
+              variant={autoDetect ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAutoDetect(!autoDetect)}
+            >
+              {autoDetect ? 'Activé' : 'Désactivé'}
+            </Button>
+          </div>
+
+          {/* Manual type selector (shown when auto-detect is off) */}
+          {!autoDetect && (
+            <div className="mt-4 pt-4 border-t">
+              <Label className="mb-2 block">Type de document à analyser</Label>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documentTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name} - {type.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -201,10 +329,12 @@ export default function DocumentsPage() {
           onDrop={handleDrop}
         >
           <div className="text-center">
-            {uploading ? (
+            {(uploading || detecting) ? (
               <div className="flex flex-col items-center">
                 <Loader2 className="w-12 h-12 text-red-600 animate-spin mb-4" />
-                <p className="text-gray-600">Analyse du document en cours...</p>
+                <p className="text-gray-600">
+                  {detecting ? 'Détection du type de document...' : 'Analyse du document en cours...'}
+                </p>
                 <p className="text-sm text-gray-400 mt-1">Extraction des données avec Claude AI</p>
               </div>
             ) : (
@@ -386,6 +516,82 @@ export default function DocumentsPage() {
           </div>
         </AlertDescription>
       </Alert>
+
+      {/* Detection Confirmation Dialog */}
+      <Dialog open={!!detectionResult} onOpenChange={() => cancelDetection()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              Confirmation du type de document
+            </DialogTitle>
+            <DialogDescription>
+              {detectionResult?.success
+                ? 'L\'IA a identifié le type de document. Veuillez confirmer ou corriger.'
+                : 'L\'IA n\'a pas pu identifier le type. Veuillez le sélectionner manuellement.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {detectionResult && (
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">Fichier:</p>
+                <p className="font-medium">{detectionResult.fileName}</p>
+              </div>
+
+              {detectionResult.success && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-purple-600">Type détecté:</p>
+                      <p className="font-medium text-purple-900">{detectionResult.detectedTypeName}</p>
+                    </div>
+                    <div className={`text-sm font-medium ${getConfidenceColor(detectionResult.confidence)}`}>
+                      {Math.round(detectionResult.confidence * 100)}% confiance
+                    </div>
+                  </div>
+                  {detectionResult.reasoning && (
+                    <p className="text-sm text-purple-700 mt-2">{detectionResult.reasoning}</p>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <Label className="mb-2 block">
+                  {detectionResult.success ? 'Corriger si nécessaire:' : 'Sélectionner le type:'}
+                </Label>
+                <Select
+                  value={detectionResult.detectedType || ''}
+                  onValueChange={changeDetectedType}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {documentTypes.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDetection}>
+              Annuler
+            </Button>
+            <Button
+              onClick={confirmDetection}
+              disabled={!detectionResult?.detectedType}
+            >
+              Confirmer et extraire
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

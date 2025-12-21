@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, Archive, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, Archive, ChevronUp, ChevronDown, Trash2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { loadSecure, saveSecure, STORAGE_KEYS, exportData } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -29,77 +30,150 @@ export default function Results() {
 
   const loadData = () => {
     try {
-      const saved = localStorage.getItem('taxDeclarationData');
-      if (saved) {
-        const parsedData = JSON.parse(saved);
+      const parsedData = loadSecure(STORAGE_KEYS.TAX_DATA, null);
+      if (parsedData) {
         setData(parsedData);
         if (parsedData.grossSalary) {
           calculateTax(parsedData);
         }
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch {
+      // Silently handle errors
     } finally {
       setLoading(false);
     }
   };
 
   const loadArchives = () => {
-    const saved = localStorage.getItem('taxDeclarationArchives');
-    if (saved) {
-      setArchives(JSON.parse(saved));
+    try {
+      const saved = loadSecure(STORAGE_KEYS.ARCHIVES, []);
+      setArchives(Array.isArray(saved) ? saved : []);
+    } catch {
+      setArchives([]);
     }
   };
 
   const restoreArchive = (archive) => {
-    const currentData = localStorage.getItem('taxDeclarationData');
-    if (currentData) {
-      const parsedData = JSON.parse(currentData);
-      const newArchive = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        data: parsedData
-      };
-      const existingArchives = JSON.parse(localStorage.getItem('taxDeclarationArchives') || '[]');
-      existingArchives.unshift(newArchive);
-      const limitedArchives = existingArchives.slice(0, 5);
-      localStorage.setItem('taxDeclarationArchives', JSON.stringify(limitedArchives));
-    }
+    try {
+      const currentData = loadSecure(STORAGE_KEYS.TAX_DATA, null);
+      if (currentData) {
+        const newArchive = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          data: currentData
+        };
+        const existingArchives = loadSecure(STORAGE_KEYS.ARCHIVES, []);
+        existingArchives.unshift(newArchive);
+        const limitedArchives = existingArchives.slice(0, 5);
+        saveSecure(STORAGE_KEYS.ARCHIVES, limitedArchives);
+      }
 
-    localStorage.setItem('taxDeclarationData', JSON.stringify(archive.data));
-    setData(archive.data);
-    if (archive.data.grossSalary) {
-      calculateTax(archive.data);
+      saveSecure(STORAGE_KEYS.TAX_DATA, archive.data);
+      setData(archive.data);
+      if (archive.data.grossSalary) {
+        calculateTax(archive.data);
+      }
+      loadArchives();
+    } catch {
+      // Silently handle errors
     }
-    loadArchives();
   };
 
   const deleteArchive = (id) => {
     const updated = archives.filter(a => a.id !== id);
-    localStorage.setItem('taxDeclarationArchives', JSON.stringify(updated));
+    saveSecure(STORAGE_KEYS.ARCHIVES, updated);
     setArchives(updated);
   };
 
   const handleReset = () => {
-    const currentData = localStorage.getItem('taxDeclarationData');
-    if (currentData) {
-      const parsedData = JSON.parse(currentData);
-      const archive = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        data: parsedData
-      };
-      const existingArchives = JSON.parse(localStorage.getItem('taxDeclarationArchives') || '[]');
-      existingArchives.unshift(archive);
-      const limitedArchives = existingArchives.slice(0, 5);
-      localStorage.setItem('taxDeclarationArchives', JSON.stringify(limitedArchives));
-    }
+    try {
+      const currentData = loadSecure(STORAGE_KEYS.TAX_DATA, null);
+      if (currentData) {
+        const archive = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          data: currentData
+        };
+        const existingArchives = loadSecure(STORAGE_KEYS.ARCHIVES, []);
+        existingArchives.unshift(archive);
+        const limitedArchives = existingArchives.slice(0, 5);
+        saveSecure(STORAGE_KEYS.ARCHIVES, limitedArchives);
+      }
 
-    localStorage.removeItem('taxDeclarationData');
-    setShowResetModal(false);
-    setData(null);
-    setTaxEstimate(null);
-    navigate('/declaration');
+      localStorage.removeItem(STORAGE_KEYS.TAX_DATA);
+      setShowResetModal(false);
+      setData(null);
+      setTaxEstimate(null);
+      navigate('/declaration');
+    } catch {
+      // Silently handle errors
+    }
+  };
+
+  // Download report as JSON
+  const downloadReport = () => {
+    const reportData = {
+      generatedAt: new Date().toISOString(),
+      year: 2024,
+      declaration: data,
+      estimate: taxEstimate,
+      extractions: loadSecure(STORAGE_KEYS.EXTRACTIONS, [])
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `declaration-impots-2024-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Download report as text (human-readable)
+  const downloadTextReport = () => {
+    const lines = [
+      '='.repeat(60),
+      'DÉCLARATION D\'IMPÔTS GENÈVE 2024',
+      '='.repeat(60),
+      `Généré le: ${new Date().toLocaleDateString('fr-CH')}`,
+      '',
+      '--- REVENUS ---',
+      `Revenu brut: CHF ${(data?.grossSalary || 0).toLocaleString('fr-CH')}`,
+      `Cotisations AVS: CHF ${(data?.avsContributions || 0).toLocaleString('fr-CH')}`,
+      `Cotisations LPP: CHF ${(data?.lppContributions || 0).toLocaleString('fr-CH')}`,
+      '',
+      '--- DÉDUCTIONS ---',
+      `3ème pilier A: CHF ${(data?.pilier3a || 0).toLocaleString('fr-CH')}`,
+      `Assurance maladie: CHF ${(data?.healthInsurance || 0).toLocaleString('fr-CH')}`,
+      `Total déductions: CHF ${(taxEstimate?.totalDeductions || 0).toLocaleString('fr-CH')}`,
+      '',
+      '--- ESTIMATION IMPÔTS ---',
+      `Revenu imposable: CHF ${(taxEstimate?.taxableIncome || 0).toLocaleString('fr-CH')}`,
+      `ICC (cantonal): CHF ${(taxEstimate?.icc || 0).toLocaleString('fr-CH')}`,
+      `Centimes additionnels: CHF ${(taxEstimate?.centimesAdd || 0).toLocaleString('fr-CH')}`,
+      `IFD (fédéral): CHF ${(taxEstimate?.ifd || 0).toLocaleString('fr-CH')}`,
+      `Impôt fortune: CHF ${(taxEstimate?.fortuneTax || 0).toLocaleString('fr-CH')}`,
+      '-'.repeat(40),
+      `TOTAL ESTIMÉ: CHF ${(taxEstimate?.total || 0).toLocaleString('fr-CH')}`,
+      `Taux effectif: ${taxEstimate?.effectiveRate || 0}%`,
+      '',
+      '='.repeat(60),
+      'AVERTISSEMENT: Cette estimation est indicative.',
+      'Le montant final peut varier selon votre situation exacte.',
+      '='.repeat(60)
+    ];
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport-impots-2024-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const calculateTax = (declarationData) => {
@@ -271,13 +345,13 @@ export default function Results() {
 
       {/* Actions */}
       <div className="flex gap-4">
-        <Button className="flex-1" size="lg">
+        <Button className="flex-1" size="lg" onClick={downloadTextReport}>
           <Download className="w-5 h-5" />
           Télécharger le rapport
         </Button>
-        <Button variant="outline" className="flex-1" size="lg">
-          <CheckCircle className="w-5 h-5" />
-          Vérifier la conformité
+        <Button variant="outline" className="flex-1" size="lg" onClick={downloadReport}>
+          <FileText className="w-5 h-5" />
+          Exporter données (JSON)
         </Button>
       </div>
 

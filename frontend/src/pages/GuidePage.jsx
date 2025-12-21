@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, MessageSquare, ChevronRight, AlertCircle, FileText, AlertTriangle, Upload, Loader2, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import api, { uploadApi } from '@/lib/api';
+import { loadSecure, saveSecure, STORAGE_KEYS, validateTaxData } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,8 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const API_URL = 'http://localhost:3002/api';
 
 const GETAX_PAGES = [
   {
@@ -119,17 +118,24 @@ export default function GuidePage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedDocTypes, setUploadedDocTypes] = useState([]);
 
-  // Load data from localStorage (saved by questionnaire)
+  // Load data from localStorage with validation
   useEffect(() => {
-    const saved = localStorage.getItem('taxDeclarationData');
-    if (saved) {
-      setUserData(JSON.parse(saved));
-      setHasData(true);
+    try {
+      const saved = loadSecure(STORAGE_KEYS.TAX_DATA, {});
+      const validated = validateTaxData(saved);
+      if (Object.keys(validated).length > 0) {
+        setUserData(validated);
+        setHasData(true);
+      }
+      // Load uploaded document types
+      const extractions = loadSecure(STORAGE_KEYS.EXTRACTIONS, []);
+      const docTypes = [...new Set(extractions.map(e => e.documentType))];
+      setUploadedDocTypes(docTypes);
+    } catch {
+      // Fallback to empty state on error
+      setUserData({});
+      setHasData(false);
     }
-    // Load uploaded document types
-    const extractions = JSON.parse(localStorage.getItem('documentExtractions') || '[]');
-    const docTypes = [...new Set(extractions.map(e => e.documentType))];
-    setUploadedDocTypes(docTypes);
   }, []);
 
   // Get missing documents for current page
@@ -171,13 +177,13 @@ export default function GuidePage() {
     if (!chatInput.trim() || chatLoading) return;
     setChatLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/chat`, {
+      const response = await api.post('/chat', {
         message: `Je suis sur ${selectedPage.name}. ${chatInput}`,
         agent: 'getax-guide'
       });
       setChatResponse(response.data.content);
     } catch (error) {
-      setChatResponse('Erreur lors de la communication avec l\'assistant.');
+      setChatResponse(error.message || 'Erreur lors de la communication avec l\'assistant.');
     } finally {
       setChatLoading(false);
       setChatInput('');
@@ -233,34 +239,34 @@ export default function GuidePage() {
     formData.append('documentType', uploadDocType);
 
     try {
-      const response = await axios.post(`${API_URL}/documents/extract`, formData, {
+      const response = await uploadApi.post('/documents/extract', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (response.data.success) {
-        // Apply extracted data to questionnaire
-        const existing = JSON.parse(localStorage.getItem('taxDeclarationData') || '{}');
+        // Apply extracted data to questionnaire with secure storage
+        const existing = loadSecure(STORAGE_KEYS.TAX_DATA, {});
         const merged = { ...existing };
         Object.entries(response.data.data).forEach(([key, value]) => {
           if (value !== null && value !== undefined && value !== '') {
             merged[key] = value;
           }
         });
-        localStorage.setItem('taxDeclarationData', JSON.stringify(merged));
+        saveSecure(STORAGE_KEYS.TAX_DATA, merged);
 
         // Update local state
         setUserData(merged);
         setHasData(true);
 
         // Save extraction to extractions list
-        const extractions = JSON.parse(localStorage.getItem('documentExtractions') || '[]');
+        const extractions = loadSecure(STORAGE_KEYS.EXTRACTIONS, []);
         extractions.unshift({
           id: Date.now(),
           fileName: file.name,
           ...response.data,
           timestamp: new Date().toISOString(),
         });
-        localStorage.setItem('documentExtractions', JSON.stringify(extractions));
+        saveSecure(STORAGE_KEYS.EXTRACTIONS, extractions);
 
         // Update uploaded doc types
         setUploadedDocTypes(prev => [...new Set([...prev, uploadDocType])]);
@@ -275,8 +281,7 @@ export default function GuidePage() {
         setUploadError(response.data.error || 'Erreur lors de l\'extraction');
       }
     } catch (err) {
-      console.error('Upload error:', err);
-      setUploadError(err.response?.data?.error || 'Erreur lors du téléchargement');
+      setUploadError(err.response?.data?.error || err.message || 'Erreur lors du téléchargement');
     } finally {
       setUploading(false);
     }

@@ -1,9 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { pdf } from 'pdf-to-img';
+import { getClient } from './anthropicClient.js';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Get shared client lazily
+const getAnthropicClient = () => getClient();
 
 // Document type definitions with extraction instructions
 const DOCUMENT_TYPES = {
@@ -216,23 +217,32 @@ Note: Pour Genève, la valeur locative est déterminée par questionnaire offici
 const MAX_PDF_PAGES = 10; // Maximum pages to process
 
 async function convertPdfToImages(filePath) {
-  const images = [];
-  const document = await pdf(filePath, { scale: 2 }); // scale 2 for better quality
+  try {
+    const images = [];
+    const document = await pdf(filePath, { scale: 2 }); // scale 2 for better quality
 
-  let pageNum = 0;
-  for await (const image of document) {
-    pageNum++;
-    // image is a Buffer containing PNG data
-    images.push({
-      data: image.toString('base64'),
-      mediaType: 'image/png',
-      page: pageNum
-    });
-    // Limit pages to avoid excessive API costs
-    if (pageNum >= MAX_PDF_PAGES) break;
+    let pageNum = 0;
+    for await (const image of document) {
+      pageNum++;
+      // image is a Buffer containing PNG data
+      images.push({
+        data: image.toString('base64'),
+        mediaType: 'image/png',
+        page: pageNum
+      });
+      // Limit pages to avoid excessive API costs
+      if (pageNum >= MAX_PDF_PAGES) break;
+    }
+
+    if (images.length === 0) {
+      throw new Error('Le PDF ne contient aucune page lisible');
+    }
+
+    return images;
+  } catch (error) {
+    // Re-throw with more context
+    throw new Error(`Erreur lors de la conversion du PDF: ${error.message}`);
   }
-
-  return images;
 }
 
 // Extract data from document using Claude Vision
@@ -247,7 +257,6 @@ export async function extractFromDocument(filePath, documentType) {
 
   // Handle PDF conversion
   if (ext === '.pdf') {
-    console.log('Converting PDF to images...');
     const pdfImages = await convertPdfToImages(filePath);
     imageContents = pdfImages.map(img => ({
       type: 'image',
@@ -257,7 +266,6 @@ export async function extractFromDocument(filePath, documentType) {
         data: img.data,
       }
     }));
-    console.log(`Converted ${pdfImages.length} page(s)`);
   } else {
     // Read image file directly
     const fileBuffer = readFileSync(filePath);
@@ -319,6 +327,7 @@ Format de réponse attendu (JSON uniquement):
 }`;
 
   try {
+    const client = getAnthropicClient();
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
@@ -359,7 +368,6 @@ Format de réponse attendu (JSON uniquement):
       usage: response.usage,
     };
   } catch (error) {
-    console.error('Extraction error:', error);
     return {
       success: false,
       documentType,
@@ -377,6 +385,114 @@ export function getDocumentTypes() {
     description: config.description,
     fields: config.fields,
   }));
+}
+
+// Auto-detect document type using Claude Vision
+export async function detectDocumentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  let imageContents = [];
+
+  // Handle PDF conversion
+  if (ext === '.pdf') {
+    const pdfImages = await convertPdfToImages(filePath);
+    // Only use first page for detection
+    if (pdfImages.length > 0) {
+      imageContents = [{
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: pdfImages[0].mediaType,
+          data: pdfImages[0].data,
+        }
+      }];
+    }
+  } else {
+    // Read image file directly
+    const fileBuffer = readFileSync(filePath);
+    const base64Data = fileBuffer.toString('base64');
+
+    let mediaType = 'image/jpeg';
+    if (ext === '.png') mediaType = 'image/png';
+    else if (ext === '.gif') mediaType = 'image/gif';
+    else if (ext === '.webp') mediaType = 'image/webp';
+
+    imageContents = [{
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: base64Data,
+      }
+    }];
+  }
+
+  const documentTypesList = Object.entries(DOCUMENT_TYPES).map(([id, config]) => ({
+    id,
+    name: config.name,
+    description: config.description
+  }));
+
+  const systemPrompt = `Tu es un expert en classification de documents fiscaux suisses.
+Tu dois identifier le type de document parmi les types suivants:
+
+${documentTypesList.map(t => `- ${t.id}: ${t.name} (${t.description})`).join('\n')}
+
+RÈGLES:
+1. Retourne UNIQUEMENT un objet JSON valide
+2. Identifie le type de document le plus probable
+3. Donne un niveau de confiance entre 0 et 1
+4. Si tu n'es pas sûr, retourne le type le plus probable avec une confiance basse`;
+
+  const userPrompt = `Analyse ce document et identifie son type.
+
+Retourne un JSON avec ce format:
+{
+  "detectedType": "id-du-type",
+  "confidence": 0.95,
+  "reasoning": "Explication courte"
+}`;
+
+  try {
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...imageContents,
+            { type: 'text', text: userPrompt }
+          ],
+        },
+      ],
+    });
+
+    const responseText = response.content[0].text;
+    let jsonStr = responseText;
+    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    }
+
+    const result = JSON.parse(jsonStr);
+    const docConfig = DOCUMENT_TYPES[result.detectedType];
+
+    return {
+      success: true,
+      detectedType: result.detectedType,
+      detectedTypeName: docConfig?.name || result.detectedType,
+      confidence: result.confidence,
+      reasoning: result.reasoning,
+      filePath
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
 }
 
 export { DOCUMENT_TYPES };
