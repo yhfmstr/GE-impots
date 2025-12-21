@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, X, Archive, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, Archive, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function Results() {
   const [data, setData] = useState(null);
@@ -18,13 +29,10 @@ export default function Results() {
 
   const loadData = () => {
     try {
-      // Load from localStorage instead of API
       const saved = localStorage.getItem('taxDeclarationData');
       if (saved) {
         const parsedData = JSON.parse(saved);
         setData(parsedData);
-
-        // Calculate taxes if we have enough data
         if (parsedData.grossSalary) {
           calculateTax(parsedData);
         }
@@ -44,7 +52,6 @@ export default function Results() {
   };
 
   const restoreArchive = (archive) => {
-    // Save current data to archives first (if exists)
     const currentData = localStorage.getItem('taxDeclarationData');
     if (currentData) {
       const parsedData = JSON.parse(currentData);
@@ -59,7 +66,6 @@ export default function Results() {
       localStorage.setItem('taxDeclarationArchives', JSON.stringify(limitedArchives));
     }
 
-    // Restore the selected archive
     localStorage.setItem('taxDeclarationData', JSON.stringify(archive.data));
     setData(archive.data);
     if (archive.data.grossSalary) {
@@ -75,7 +81,6 @@ export default function Results() {
   };
 
   const handleReset = () => {
-    // Archive current data before reset
     const currentData = localStorage.getItem('taxDeclarationData');
     if (currentData) {
       const parsedData = JSON.parse(currentData);
@@ -84,26 +89,20 @@ export default function Results() {
         date: new Date().toISOString(),
         data: parsedData
       };
-
       const existingArchives = JSON.parse(localStorage.getItem('taxDeclarationArchives') || '[]');
-      existingArchives.unshift(archive); // Add to beginning
-      // Keep only last 5 archives
+      existingArchives.unshift(archive);
       const limitedArchives = existingArchives.slice(0, 5);
       localStorage.setItem('taxDeclarationArchives', JSON.stringify(limitedArchives));
     }
 
-    // Clear current data
     localStorage.removeItem('taxDeclarationData');
     setShowResetModal(false);
     setData(null);
     setTaxEstimate(null);
-
-    // Redirect to declaration page
     navigate('/declaration');
   };
 
   const calculateTax = (declarationData) => {
-    // Support both flat structure (from localStorage) and nested structure
     const grossIncome = declarationData.grossSalary || declarationData.income?.grossSalary || 0;
     const avsContributions = declarationData.avsContributions || declarationData.income?.avsContributions || 0;
     const lppContributions = declarationData.lppContributions || declarationData.income?.lppContributions || 0;
@@ -115,17 +114,15 @@ export default function Results() {
     const personalLoans = declarationData.personalLoans || declarationData.wealth?.personalLoans || 0;
     const otherDebts = declarationData.otherDebts || declarationData.wealth?.otherDebts || 0;
 
-    // Calculate deductions
     const totalDeductions =
       avsContributions +
       lppContributions +
       pilier3a +
       healthInsurance +
-      Math.min(grossIncome * 0.03, 1796); // forfait professionnel ICC
+      Math.min(grossIncome * 0.03, 1796);
 
     const taxableIncome = Math.max(0, grossIncome - totalDeductions);
 
-    // Simplified ICC calculation (progressive rates)
     let icc = 0;
     if (taxableIncome > 0) {
       if (taxableIncome <= 17493) icc = taxableIncome * 0.08;
@@ -144,13 +141,8 @@ export default function Results() {
       else icc = 86387 + (taxableIncome - 498293) * 0.19;
     }
 
-    // Centimes additionnels (moyenne Genève ~45%)
     const centimesAdd = icc * 0.45;
-
-    // IFD (simplified)
     const ifd = taxableIncome * 0.115 * 0.8;
-
-    // Fortune tax
     const totalWealth = bankAccounts + securities + vehicleValue - personalLoans - otherDebts;
     const fortuneTax = Math.max(0, (totalWealth - 87864) * 0.005);
 
@@ -177,13 +169,13 @@ export default function Results() {
 
   if (!taxEstimate) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-        <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900">Données insuffisantes</h3>
-        <p className="mt-2 text-gray-600">
-          Veuillez compléter le questionnaire pour voir l'estimation de vos impôts.
-        </p>
-      </div>
+      <Alert variant="warning">
+        <AlertTriangle className="h-5 w-5" />
+        <AlertDescription>
+          <strong className="block mb-1">Données insuffisantes</strong>
+          Veuillez compléter la déclaration pour voir l'estimation de vos impôts.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -191,102 +183,107 @@ export default function Results() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Calculator className="w-5 h-5 text-blue-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Calculator className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-sm text-gray-500">Revenu imposable</span>
             </div>
-            <span className="text-sm text-gray-500">Revenu imposable</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            CHF {taxEstimate.taxableIncome.toLocaleString()}
-          </p>
-        </div>
+            <p className="text-2xl font-bold text-gray-900">
+              CHF {taxEstimate.taxableIncome.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-green-600" />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <TrendingDown className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-sm text-gray-500">Déductions totales</span>
             </div>
-            <span className="text-sm text-gray-500">Déductions totales</span>
-          </div>
-          <p className="text-2xl font-bold text-green-600">
-            CHF {taxEstimate.totalDeductions.toLocaleString()}
-          </p>
-        </div>
+            <p className="text-2xl font-bold text-green-600">
+              CHF {taxEstimate.totalDeductions.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <span className="text-red-600 font-bold">%</span>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <span className="text-red-600 font-bold">%</span>
+              </div>
+              <span className="text-sm text-gray-500">Taux effectif</span>
             </div>
-            <span className="text-sm text-gray-500">Taux effectif</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            {taxEstimate.effectiveRate}%
-          </p>
-        </div>
+            <p className="text-2xl font-bold text-gray-900">
+              {taxEstimate.effectiveRate}%
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tax Breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Estimation des impôts 2024</h3>
-          <p className="text-sm text-gray-500 mt-1">Basée sur les informations fournies</p>
-        </div>
-
-        <div className="divide-y divide-gray-100">
-          <div className="flex justify-between p-4 hover:bg-gray-50">
-            <span className="text-gray-600">ICC (Impôt cantonal)</span>
-            <span className="font-medium">CHF {taxEstimate.icc.toLocaleString()}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Estimation des impôts 2024</CardTitle>
+          <CardDescription>Basée sur les informations fournies</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-gray-100">
+            <div className="flex justify-between p-4 hover:bg-gray-50">
+              <span className="text-gray-600">ICC (Impôt cantonal)</span>
+              <span className="font-medium">CHF {taxEstimate.icc.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between p-4 hover:bg-gray-50">
+              <span className="text-gray-600">Centimes additionnels communaux</span>
+              <span className="font-medium">CHF {taxEstimate.centimesAdd.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between p-4 hover:bg-gray-50">
+              <span className="text-gray-600">IFD (Impôt fédéral direct)</span>
+              <span className="font-medium">CHF {taxEstimate.ifd.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between p-4 hover:bg-gray-50">
+              <span className="text-gray-600">Impôt sur la fortune</span>
+              <span className="font-medium">CHF {taxEstimate.fortuneTax.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between p-4 bg-red-50">
+              <span className="font-semibold text-gray-900">Total estimé</span>
+              <span className="font-bold text-red-600 text-lg">
+                CHF {taxEstimate.total.toLocaleString()}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between p-4 hover:bg-gray-50">
-            <span className="text-gray-600">Centimes additionnels communaux</span>
-            <span className="font-medium">CHF {taxEstimate.centimesAdd.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between p-4 hover:bg-gray-50">
-            <span className="text-gray-600">IFD (Impôt fédéral direct)</span>
-            <span className="font-medium">CHF {taxEstimate.ifd.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between p-4 hover:bg-gray-50">
-            <span className="text-gray-600">Impôt sur la fortune</span>
-            <span className="font-medium">CHF {taxEstimate.fortuneTax.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between p-4 bg-red-50">
-            <span className="font-semibold text-gray-900">Total estimé</span>
-            <span className="font-bold text-red-600 text-lg">
-              CHF {taxEstimate.total.toLocaleString()}
-            </span>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Disclaimer */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-        <AlertTriangle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm text-blue-800">
-            <strong>Estimation indicative:</strong> Ce calcul est une approximation basée sur les barèmes 2024.
-            Le montant final peut varier selon votre situation exacte et les centimes additionnels de votre commune.
-          </p>
-        </div>
-      </div>
+      <Alert variant="info">
+        <AlertTriangle className="h-5 w-5" />
+        <AlertDescription>
+          <strong>Estimation indicative:</strong> Ce calcul est une approximation basée sur les barèmes 2024.
+          Le montant final peut varier selon votre situation exacte et les centimes additionnels de votre commune.
+        </AlertDescription>
+      </Alert>
 
       {/* Actions */}
       <div className="flex gap-4">
-        <button className="flex-1 flex items-center justify-center gap-2 p-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors">
+        <Button className="flex-1" size="lg">
           <Download className="w-5 h-5" />
           Télécharger le rapport
-        </button>
-        <button className="flex-1 flex items-center justify-center gap-2 p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
+        </Button>
+        <Button variant="outline" className="flex-1" size="lg">
           <CheckCircle className="w-5 h-5" />
           Vérifier la conformité
-        </button>
+        </Button>
       </div>
 
       {/* Archives Section */}
       {archives.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <Card>
           <button
             onClick={() => setShowArchives(!showArchives)}
             className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
@@ -328,90 +325,79 @@ export default function Results() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => restoreArchive(archive)}
-                        className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
                       >
                         Restaurer
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => deleteArchive(archive.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="text-gray-400 hover:text-red-600"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Reset Button */}
       <div className="pt-4 border-t border-gray-200">
-        <button
+        <Button
+          variant="ghost"
+          className="w-full text-gray-600 hover:text-red-600"
           onClick={() => setShowResetModal(true)}
-          className="flex items-center justify-center gap-2 w-full p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
           Recommencer une nouvelle déclaration
-        </button>
+        </Button>
       </div>
 
-      {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recommencer?</h3>
-              <button
-                onClick={() => setShowResetModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
+      {/* Reset Confirmation Dialog */}
+      <Dialog open={showResetModal} onOpenChange={setShowResetModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recommencer?</DialogTitle>
+            <DialogDescription>
+              Cette action va archiver votre déclaration actuelle.
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="mb-6">
-              <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl mb-4">
-                <Archive className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-amber-800">
-                    Vos données actuelles seront <strong>archivées</strong> avant d'être effacées.
-                    Vous pourrez les consulter plus tard si nécessaire.
-                  </p>
-                </div>
-              </div>
+          <Alert variant="warning" className="my-4">
+            <Archive className="h-5 w-5" />
+            <AlertDescription>
+              Vos données actuelles seront <strong>archivées</strong> avant d'être effacées.
+              Vous pourrez les consulter plus tard si nécessaire.
+            </AlertDescription>
+          </Alert>
 
-              <p className="text-sm text-gray-600">
-                Cette action va:
-              </p>
-              <ul className="text-sm text-gray-600 mt-2 space-y-1">
-                <li>• Archiver votre déclaration actuelle</li>
-                <li>• Effacer toutes les données du questionnaire</li>
-                <li>• Vous rediriger vers une nouvelle déclaration</li>
-              </ul>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowResetModal(false)}
-                className="flex-1 p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex-1 p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
-              >
-                Oui, recommencer
-              </button>
-            </div>
+          <div className="text-sm text-gray-600">
+            <p>Cette action va:</p>
+            <ul className="mt-2 space-y-1">
+              <li>• Archiver votre déclaration actuelle</li>
+              <li>• Effacer toutes les données du questionnaire</li>
+              <li>• Vous rediriger vers une nouvelle déclaration</li>
+            </ul>
           </div>
-        </div>
-      )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowResetModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleReset}>
+              Oui, recommencer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

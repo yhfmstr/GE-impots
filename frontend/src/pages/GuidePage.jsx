@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, MessageSquare, ChevronRight, AlertCircle, FileText, AlertTriangle, Upload, Loader2, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const API_URL = 'http://localhost:3002/api';
 
@@ -285,58 +298,59 @@ export default function GuidePage() {
 
       {/* No data warning */}
       {!hasData && (
-        <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-amber-900">Commencez par importer vos documents</h3>
-            <p className="text-sm text-amber-800 mt-1">
-              Téléchargez vos certificats et attestations pour remplir automatiquement les rubriques.
-            </p>
-          </div>
-        </div>
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertDescription>
+            <strong className="block mb-1">Commencez par importer vos documents</strong>
+            Téléchargez vos certificats et attestations pour remplir automatiquement les rubriques.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Page Selector */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Page GeTax actuelle:
-        </label>
-        <select
-          value={selectedPage.id}
-          onChange={(e) => setSelectedPage(GETAX_PAGES.find(p => p.id === e.target.value))}
-          className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-        >
-          {GETAX_PAGES.map(page => (
-            <option key={page.id} value={page.id}>{page.name}</option>
-          ))}
-        </select>
-        <p className="text-sm text-gray-500 mt-2">{selectedPage.description}</p>
-
-        {/* Missing documents hint */}
-        {missingDocs.length > 0 && (
-          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-800">
-              <span className="font-medium">Documents recommandés:</span>{' '}
-              {missingDocs.map((dt, i) => (
-                <span key={dt}>
-                  {DOCUMENT_TYPE_NAMES[dt]}
-                  {i < missingDocs.length - 1 ? ', ' : ''}
-                </span>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <Label className="mb-2 block">Page GeTax actuelle:</Label>
+          <Select value={selectedPage.id} onValueChange={(value) => setSelectedPage(GETAX_PAGES.find(p => p.id === value))}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {GETAX_PAGES.map(page => (
+                <SelectItem key={page.id} value={page.id}>{page.name}</SelectItem>
               ))}
-            </p>
-            <button
-              onClick={() => setUploadOpen(true)}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Importer un document →
-            </button>
-          </div>
-        )}
-      </div>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-gray-500 mt-2">{selectedPage.description}</p>
+
+          {/* Missing documents hint */}
+          {missingDocs.length > 0 && (
+            <Alert variant="info" className="mt-3">
+              <AlertDescription>
+                <span className="font-medium">Documents recommandés:</span>{' '}
+                {missingDocs.map((dt, i) => (
+                  <span key={dt}>
+                    {DOCUMENT_TYPE_NAMES[dt]}
+                    {i < missingDocs.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setUploadOpen(true)}
+                  className="ml-2 p-0 h-auto"
+                >
+                  Importer un document
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Document Upload Section */}
       {selectedPage.documentTypes?.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <Card className="mb-6 overflow-hidden">
           <button
             onClick={() => setUploadOpen(!uploadOpen)}
             className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
@@ -349,25 +363,20 @@ export default function GuidePage() {
           </button>
 
           {uploadOpen && (
-            <div className="p-4 border-t border-gray-200 space-y-4">
+            <CardContent className="p-4 border-t border-gray-200 space-y-4">
               {/* Document type selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type de document:
-                </label>
+                <Label className="mb-2 block">Type de document:</Label>
                 <div className="flex flex-wrap gap-2">
                   {selectedPage.documentTypes.map(docType => (
-                    <button
+                    <Button
                       key={docType}
+                      variant={uploadDocType === docType ? 'blue' : 'secondary'}
+                      size="sm"
                       onClick={() => setUploadDocType(docType)}
-                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        uploadDocType === docType
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
                     >
                       {DOCUMENT_TYPE_NAMES[docType]}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -396,9 +405,9 @@ export default function GuidePage() {
                         Glissez votre <strong>{DOCUMENT_TYPE_NAMES[uploadDocType]}</strong> ici
                       </p>
                       <label className="cursor-pointer">
-                        <span className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors inline-block">
-                          Choisir un fichier
-                        </span>
+                        <Button variant="blue" asChild>
+                          <span>Choisir un fichier</span>
+                        </Button>
                         <input
                           type="file"
                           className="hidden"
@@ -414,102 +423,97 @@ export default function GuidePage() {
 
               {/* Success message */}
               {uploadSuccess && (
-                <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-green-800">{uploadSuccess.documentName} analysé</p>
-                    <p className="text-sm text-green-700">
-                      {uploadSuccess.fieldsExtracted} champs extraits et appliqués aux rubriques ci-dessous.
-                    </p>
-                  </div>
-                </div>
+                <Alert variant="success">
+                  <CheckCircle className="h-5 w-5" />
+                  <AlertDescription>
+                    <strong>{uploadSuccess.documentName}</strong> analysé. {uploadSuccess.fieldsExtracted} champs extraits et appliqués.
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Error message */}
               {uploadError && (
-                <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-red-800">{uploadError}</p>
-                    <button
-                      onClick={() => setUploadError(null)}
-                      className="text-sm text-red-600 hover:text-red-800 mt-1"
-                    >
+                <Alert variant="destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>{uploadError}</span>
+                    <Button variant="ghost" size="sm" onClick={() => setUploadError(null)}>
                       Fermer
-                    </button>
-                  </div>
-                </div>
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               )}
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Fields List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Rubriques à remplir</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {selectedPage.fields.map((field) => {
-            const value = getFieldValue(field);
-            const isOverLimit = field.limit && value > field.limit;
+      <Card className="mb-6 overflow-hidden">
+        <CardHeader className="bg-gray-50 border-b border-gray-200">
+          <CardTitle>Rubriques à remplir</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-gray-100">
+            {selectedPage.fields.map((field) => {
+              const value = getFieldValue(field);
+              const isOverLimit = field.limit && value > field.limit;
 
-            return (
-              <div key={field.code} className="p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-red-100 text-red-800">
-                        {field.code}
-                      </span>
-                      <span className="font-medium text-gray-900">{field.name}</span>
-                    </div>
-                    <div className="mt-1 text-sm text-gray-500">
-                      {field.calculated ? (
-                        <span className="text-blue-600">Calculé: {field.formula}</span>
-                      ) : (
-                        <span>Source: {field.source}</span>
+              return (
+                <div key={field.code} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default">{field.code}</Badge>
+                        <span className="font-medium text-gray-900">{field.name}</span>
+                      </div>
+                      <div className="mt-1 text-sm text-gray-500">
+                        {field.calculated ? (
+                          <span className="text-blue-600">Calculé: {field.formula}</span>
+                        ) : (
+                          <span>Source: {field.source}</span>
+                        )}
+                      </div>
+                      {isOverLimit && (
+                        <div className="mt-1 flex items-center gap-1 text-amber-600 text-sm">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Limite dépassée! Max: {field.limit.toLocaleString('fr-CH')} CHF</span>
+                        </div>
                       )}
                     </div>
-                    {isOverLimit && (
-                      <div className="mt-1 flex items-center gap-1 text-amber-600 text-sm">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>Limite dépassée! Max: {field.limit.toLocaleString('fr-CH')} CHF</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {value !== null ? (
-                      <>
-                        <span className={`font-mono text-lg ${isOverLimit ? 'text-amber-600' : 'text-gray-900'}`}>
-                          CHF {value.toLocaleString('fr-CH')}
-                        </span>
-                        <button
-                          onClick={() => copyValue(field.code, value)}
-                          className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
-                          title="Copier la valeur"
-                        >
-                          {copiedCode === field.code ? (
-                            <Check className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <Copy className="w-5 h-5 text-gray-400" />
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-gray-400 italic">Non renseigné</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {value !== null ? (
+                        <>
+                          <span className={`font-mono text-lg ${isOverLimit ? 'text-amber-600' : 'text-gray-900'}`}>
+                            CHF {value.toLocaleString('fr-CH')}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyValue(field.code, value)}
+                            title="Copier la valeur"
+                          >
+                            {copiedCode === field.code ? (
+                              <Check className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <Copy className="w-5 h-5 text-gray-400" />
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 italic">Non renseigné</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Chat */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <Card className="overflow-hidden">
         <button
           onClick={() => setChatOpen(!chatOpen)}
           className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -522,41 +526,40 @@ export default function GuidePage() {
         </button>
 
         {chatOpen && (
-          <div className="p-4 border-t border-gray-200">
+          <CardContent className="p-4 border-t border-gray-200">
             <div className="flex gap-2 mb-4">
-              <input
+              <Input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && askGuide()}
                 placeholder="Ex: Comment calculer le forfait frais professionnels?"
-                className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="flex-1"
               />
-              <button
+              <Button
                 onClick={askGuide}
                 disabled={chatLoading || !chatInput.trim()}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
                 {chatLoading ? '...' : 'Demander'}
-              </button>
+              </Button>
             </div>
             {chatResponse && (
               <div className="p-4 bg-gray-50 rounded-lg text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
                 {chatResponse}
               </div>
             )}
-          </div>
+          </CardContent>
         )}
-      </div>
+      </Card>
 
       {/* Tips */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-        <h3 className="font-medium text-blue-900 mb-2">Conseil</h3>
-        <p className="text-sm text-blue-800">
+      <Alert variant="info" className="mt-6">
+        <AlertDescription>
+          <strong className="block mb-1">Conseil</strong>
           Ouvrez GeTax dans un autre onglet et suivez ce guide rubrique par rubrique.
           Cliquez sur l'icône de copie pour copier la valeur et la coller directement dans GeTax.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

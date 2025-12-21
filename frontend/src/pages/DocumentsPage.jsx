@@ -1,6 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, FileText, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw, X } from 'lucide-react';
+import { Upload, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const API_URL = 'http://localhost:3002/api';
 
@@ -14,7 +33,6 @@ export default function DocumentsPage() {
   const [expandedExtraction, setExpandedExtraction] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  // Load document types from API
   useEffect(() => {
     loadDocumentTypes();
     loadExtractions();
@@ -58,7 +76,6 @@ export default function DocumentsPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -98,10 +115,7 @@ export default function DocumentsPage() {
 
         const updated = [newExtraction, ...extractions];
         saveExtractions(updated);
-
-        // Auto-apply extracted data to questionnaire
         applyExtractedData(response.data.data);
-
         setExpandedExtraction(newExtraction.id);
       } else {
         setError(response.data.error || 'Erreur lors de l\'extraction');
@@ -115,18 +129,13 @@ export default function DocumentsPage() {
   };
 
   const applyExtractedData = (data) => {
-    // Load existing questionnaire data
     const existing = JSON.parse(localStorage.getItem('taxDeclarationData') || '{}');
-
-    // Merge extracted data (only non-null values)
     const merged = { ...existing };
     Object.entries(data).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         merged[key] = value;
       }
     });
-
-    // Save back to localStorage
     localStorage.setItem('taxDeclarationData', JSON.stringify(merged));
   };
 
@@ -162,280 +171,256 @@ export default function DocumentsPage() {
       </div>
 
       {/* Document Type Selector */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Type de document à analyser
-        </label>
-        <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-        >
-          {documentTypes.map(type => (
-            <option key={type.id} value={type.id}>
-              {type.name} - {type.description}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <Label className="mb-2 block">Type de document à analyser</Label>
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionner un type" />
+            </SelectTrigger>
+            <SelectContent>
+              {documentTypes.map(type => (
+                <SelectItem key={type.id} value={type.id}>
+                  {type.name} - {type.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {/* Upload Zone */}
-      <div
-        className={`bg-white rounded-xl border-2 border-dashed p-8 mb-6 transition-colors ${
-          dragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-      >
-        <div className="text-center">
-          {uploading ? (
-            <div className="flex flex-col items-center">
-              <Loader2 className="w-12 h-12 text-red-600 animate-spin mb-4" />
-              <p className="text-gray-600">Analyse du document en cours...</p>
-              <p className="text-sm text-gray-400 mt-1">Extraction des données avec Claude AI</p>
-            </div>
-          ) : (
-            <>
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900 mb-2">
-                Glissez votre document ici
-              </p>
-              <p className="text-gray-500 mb-4">ou</p>
-              <label className="cursor-pointer">
-                <span className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors inline-block">
-                  Choisir un fichier
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
-                  onChange={handleFileInput}
-                />
-              </label>
-              <p className="text-sm text-gray-400 mt-4">
-                Formats acceptés: JPG, PNG, GIF, WEBP, PDF (max 10 MB)
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+      <Card className={`mb-6 border-2 border-dashed transition-colors ${
+        dragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+      }`}>
+        <CardContent
+          className="p-8"
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <div className="text-center">
+            {uploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-12 h-12 text-red-600 animate-spin mb-4" />
+                <p className="text-gray-600">Analyse du document en cours...</p>
+                <p className="text-sm text-gray-400 mt-1">Extraction des données avec Claude AI</p>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-900 mb-2">
+                  Glissez votre document ici
+                </p>
+                <p className="text-gray-500 mb-4">ou</p>
+                <label className="cursor-pointer">
+                  <Button asChild>
+                    <span>Choisir un fichier</span>
+                  </Button>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                    onChange={handleFileInput}
+                  />
+                </label>
+                <p className="text-sm text-gray-400 mt-4">
+                  Formats acceptés: JPG, PNG, GIF, WEBP, PDF (max 10 MB)
+                </p>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-red-800">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="text-sm text-red-600 hover:text-red-800 mt-1"
-            >
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-5 w-5" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}>
               Fermer
-            </button>
-          </div>
-        </div>
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Extracted Documents List */}
       {extractions.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Documents analysés</h2>
+        <Card className="mb-6">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Documents analysés</CardTitle>
             <span className="text-sm text-gray-500">{extractions.length} document(s)</span>
-          </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-100">
+              {extractions.map((extraction) => {
+                const typeConfig = getTypeConfig(extraction.documentType);
+                const isExpanded = expandedExtraction === extraction.id;
 
-          <div className="divide-y divide-gray-100">
-            {extractions.map((extraction) => {
-              const typeConfig = getTypeConfig(extraction.documentType);
-              const isExpanded = expandedExtraction === extraction.id;
-
-              return (
-                <div key={extraction.id} className="p-4">
-                  {/* Header */}
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedExtraction(isExpanded ? null : extraction.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        extraction.success ? 'bg-green-100' : 'bg-red-100'
-                      }`}>
-                        {extraction.success ? (
-                          <Check className="w-5 h-5 text-green-600" />
+                return (
+                  <div key={extraction.id} className="p-4">
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setExpandedExtraction(isExpanded ? null : extraction.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          extraction.success ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          {extraction.success ? (
+                            <Check className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{extraction.documentName}</p>
+                          <p className="text-sm text-gray-500">{extraction.fileName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmDelete(extraction);
+                          }}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-gray-400" />
                         ) : (
-                          <AlertCircle className="w-5 h-5 text-red-600" />
+                          <ChevronDown className="w-5 h-5 text-gray-400" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{extraction.documentName}</p>
-                        <p className="text-sm text-gray-500">{extraction.fileName}</p>
-                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmDelete(extraction);
-                        }}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400" />
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Expanded Content */}
-                  {isExpanded && extraction.success && (
-                    <div className="mt-4 pl-13 space-y-4">
-                      {/* Main extracted data */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Données extraites</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {typeConfig?.fields.map(field => (
-                            <div key={field.key} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
-                              <span className="text-sm text-gray-600">{field.label}</span>
-                              <span className="font-medium text-gray-900">
-                                {formatValue(extraction.data[field.key], field.type)}
-                              </span>
-                            </div>
-                          ))}
+                    {isExpanded && extraction.success && (
+                      <div className="mt-4 space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-3">Données extraites</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {typeConfig?.fields.map(field => (
+                              <div key={field.key} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                                <span className="text-sm text-gray-600">{field.label}</span>
+                                <span className="font-medium text-gray-900">
+                                  {formatValue(extraction.data[field.key], field.type)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Notes and warnings */}
-                      {(extraction.data.notes || extraction.data.warnings || extraction.data.additionalAmounts) && (
-                        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                          <h4 className="text-sm font-medium text-amber-800 mb-3">Informations supplémentaires</h4>
+                        {(extraction.data.notes || extraction.data.warnings || extraction.data.additionalAmounts) && (
+                          <Alert variant="warning">
+                            <AlertCircle className="h-5 w-5" />
+                            <AlertDescription>
+                              <h4 className="font-medium mb-2">Informations supplémentaires</h4>
+                              {extraction.data.warnings && (
+                                <p className="text-sm mb-1"><strong>Points d'attention:</strong> {extraction.data.warnings}</p>
+                              )}
+                              {extraction.data.notes && (
+                                <p className="text-sm mb-1"><strong>Notes:</strong> {extraction.data.notes}</p>
+                              )}
+                              {extraction.data.additionalAmounts && (
+                                <p className="text-sm mb-1"><strong>Autres montants:</strong> {extraction.data.additionalAmounts}</p>
+                              )}
+                              {extraction.data.period && (
+                                <p className="text-sm text-gray-600">Période: {extraction.data.period}</p>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                        )}
 
-                          {extraction.data.warnings && (
-                            <div className="mb-3">
-                              <span className="text-xs font-medium text-amber-700 uppercase">Points d'attention:</span>
-                              <p className="text-sm text-amber-900 mt-1">{extraction.data.warnings}</p>
-                            </div>
-                          )}
-
-                          {extraction.data.notes && (
-                            <div className="mb-3">
-                              <span className="text-xs font-medium text-amber-700 uppercase">Notes:</span>
-                              <p className="text-sm text-amber-900 mt-1">{extraction.data.notes}</p>
-                            </div>
-                          )}
-
-                          {extraction.data.additionalAmounts && (
-                            <div className="mb-3">
-                              <span className="text-xs font-medium text-amber-700 uppercase">Autres montants:</span>
-                              <p className="text-sm text-amber-900 mt-1">{extraction.data.additionalAmounts}</p>
-                            </div>
-                          )}
-
-                          {extraction.data.period && (
-                            <div className="text-xs text-amber-700">
-                              Période: {extraction.data.period}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex gap-3">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => applyExtractedData(extraction.data)}
-                          className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-4 h-4 mr-2" />
                           Réappliquer au questionnaire
-                        </button>
+                        </Button>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {isExpanded && !extraction.success && (
-                    <div className="mt-4 pl-13">
-                      <div className="bg-red-50 rounded-lg p-4">
-                        <p className="text-sm text-red-800">
+                    {isExpanded && !extraction.success && (
+                      <Alert variant="destructive" className="mt-4">
+                        <AlertCircle className="h-5 w-5" />
+                        <AlertDescription>
                           Erreur: {extraction.error || 'Impossible d\'extraire les données'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Supported Documents Info */}
-      <div className="mt-6 bg-blue-50 rounded-xl border border-blue-100 p-4">
-        <h3 className="font-medium text-blue-900 mb-2">Documents supportés</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-800">
-          <div>• Certificat de salaire</div>
-          <div>• Attestation 3ème pilier A</div>
-          <div>• Attestation rachat LPP</div>
-          <div>• Relevés bancaires</div>
-          <div>• État des titres</div>
-          <div>• Attestation assurance maladie</div>
-          <div>• Attestation assurance-vie</div>
-          <div>• Factures frais de garde</div>
-          <div>• Attestation hypothécaire</div>
-          <div>• Factures formation</div>
-          <div>• Relevés de crédit/leasing</div>
-          <div>• Estimation immobilière</div>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Supprimer le document?</h3>
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="p-1 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-red-800">{deleteConfirm.documentName}</p>
-                  <p className="text-sm text-red-700 mt-1">{deleteConfirm.fileName}</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mt-4">
-                Cette action supprimera les données extraites de ce document. Les données déjà appliquées au questionnaire ne seront pas affectées.
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={deleteExtraction}
-                className="flex-1 p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
-              >
-                Supprimer
-              </button>
-            </div>
+      <Alert variant="info">
+        <AlertDescription>
+          <h3 className="font-medium mb-2">Documents supportés</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm">
+            <div>• Certificat de salaire</div>
+            <div>• Attestation 3ème pilier A</div>
+            <div>• Attestation rachat LPP</div>
+            <div>• Relevés bancaires</div>
+            <div>• État des titres</div>
+            <div>• Attestation assurance maladie</div>
+            <div>• Attestation assurance-vie</div>
+            <div>• Factures frais de garde</div>
+            <div>• Attestation hypothécaire</div>
+            <div>• Factures formation</div>
+            <div>• Relevés de crédit/leasing</div>
+            <div>• Estimation immobilière</div>
           </div>
-        </div>
-      )}
+        </AlertDescription>
+      </Alert>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le document?</DialogTitle>
+            <DialogDescription>
+              Cette action supprimera les données extraites de ce document.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteConfirm && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription>
+                <p className="font-medium">{deleteConfirm.documentName}</p>
+                <p className="text-sm">{deleteConfirm.fileName}</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <p className="text-sm text-gray-600">
+            Les données déjà appliquées au questionnaire ne seront pas affectées.
+          </p>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={deleteExtraction}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

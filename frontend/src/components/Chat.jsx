@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const API_URL = 'http://localhost:3002/api';
 
@@ -53,27 +63,28 @@ export default function Chat({ initialContext = [] }) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] bg-white rounded-xl shadow-sm border border-gray-200">
+    <Card className="flex flex-col h-[calc(100vh-12rem)]">
       {/* Agent Selector */}
       <div className="p-4 border-b border-gray-200">
-        <select
-          value={agent}
-          onChange={(e) => setAgent(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-        >
-          <option value="tax-coordinator">Coordinateur fiscal (général)</option>
-          <option value="getax-guide">Guide GeTax pas à pas</option>
-          <option value="revenus-expert">Expert revenus</option>
-          <option value="deductions-expert">Expert déductions</option>
-          <option value="fortune-expert">Expert fortune</option>
-          <option value="immobilier-expert">Expert immobilier</option>
-          <option value="optimizer">Optimiseur fiscal</option>
-          <option value="compliance-checker">Vérificateur conformité</option>
-        </select>
+        <Select value={agent} onValueChange={setAgent}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tax-coordinator">Coordinateur fiscal (général)</SelectItem>
+            <SelectItem value="getax-guide">Guide GeTax pas à pas</SelectItem>
+            <SelectItem value="revenus-expert">Expert revenus</SelectItem>
+            <SelectItem value="deductions-expert">Expert déductions</SelectItem>
+            <SelectItem value="fortune-expert">Expert fortune</SelectItem>
+            <SelectItem value="immobilier-expert">Expert immobilier</SelectItem>
+            <SelectItem value="optimizer">Optimiseur fiscal</SelectItem>
+            <SelectItem value="compliance-checker">Vérificateur conformité</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -111,28 +122,28 @@ export default function Chat({ initialContext = [] }) {
           </div>
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </CardContent>
 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-4 border-t border-gray-200">
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Posez votre question..."
-            className="flex-1 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
             disabled={loading}
+            className="flex-1"
           />
-          <button
+          <Button
             type="submit"
             disabled={loading || !input.trim()}
-            className="p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            size="icon"
           >
             <Send className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Card>
   );
 }

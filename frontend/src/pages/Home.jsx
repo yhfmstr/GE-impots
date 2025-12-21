@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
 import { MessageSquare, FileText, Upload, Calculator, ArrowRight, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const features = [
   {
@@ -44,10 +47,10 @@ export default function Home() {
     <div className="space-y-12">
       {/* Hero */}
       <div className="text-center py-12">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-medium mb-6">
+        <Badge variant="default" className="mb-6 gap-2">
           <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
           Déclaration 2024
-        </div>
+        </Badge>
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
           Déclaration d'impôts<br />
           <span className="text-red-600">Canton de Genève</span>
@@ -58,81 +61,80 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/declaration"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
-          >
-            Commencer ma déclaration
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-          <Link
-            to="/chat"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-          >
-            <MessageSquare className="w-5 h-5" />
-            Poser une question
-          </Link>
+          <Button asChild size="lg">
+            <Link to="/declaration">
+              Commencer ma déclaration
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/chat">
+              <MessageSquare className="w-5 h-5" />
+              Poser une question
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {features.map((feature) => (
-          <Link
-            key={feature.title}
-            to={feature.link}
-            className="group p-6 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all"
-          >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-              feature.color === 'blue' ? 'bg-blue-100' :
-              feature.color === 'green' ? 'bg-green-100' :
-              feature.color === 'purple' ? 'bg-purple-100' :
-              'bg-red-100'
-            }`}>
-              <feature.icon className={`w-6 h-6 ${
-                feature.color === 'blue' ? 'text-blue-600' :
-                feature.color === 'green' ? 'text-green-600' :
-                feature.color === 'purple' ? 'text-purple-600' :
-                'text-red-600'
-              }`} />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
-              {feature.title}
-            </h3>
-            <p className="mt-2 text-gray-600">{feature.description}</p>
+          <Link key={feature.title} to={feature.link}>
+            <Card className="h-full hover:border-gray-300 hover:shadow-lg transition-all group">
+              <CardContent className="p-6">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
+                  feature.color === 'blue' ? 'bg-blue-100' :
+                  feature.color === 'green' ? 'bg-green-100' :
+                  feature.color === 'purple' ? 'bg-purple-100' :
+                  'bg-red-100'
+                }`}>
+                  <feature.icon className={`w-6 h-6 ${
+                    feature.color === 'blue' ? 'text-blue-600' :
+                    feature.color === 'green' ? 'text-green-600' :
+                    feature.color === 'purple' ? 'text-purple-600' :
+                    'text-red-600'
+                  }`} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-gray-600">{feature.description}</p>
+              </CardContent>
+            </Card>
           </Link>
         ))}
       </div>
 
       {/* Quick Reference */}
-      <div className="bg-gray-900 rounded-2xl p-8 text-white">
-        <h2 className="text-2xl font-bold mb-6">Limites de déductions 2024</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {limits2024.map((item) => (
-            <div key={item.label} className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-              <span className="text-gray-300">{item.label}:</span>
-              <span className="font-semibold">{item.value}</span>
-            </div>
-          ))}
-        </div>
-        <p className="mt-6 text-sm text-gray-400">
-          Source: Guide de la déclaration d'impôts 2024 - Administration fiscale cantonale de Genève
-        </p>
-      </div>
+      <Card className="bg-gray-900 border-gray-800">
+        <CardContent className="p-8 text-white">
+          <h2 className="text-2xl font-bold mb-6">Limites de déductions 2024</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {limits2024.map((item) => (
+              <div key={item.label} className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <span className="text-gray-300">{item.label}:</span>
+                <span className="font-semibold">{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-gray-400">
+            Source: Guide de la déclaration d'impôts 2024 - Administration fiscale cantonale de Genève
+          </p>
+        </CardContent>
+      </Card>
 
       {/* CTA */}
       <div className="text-center py-8">
         <p className="text-gray-600 mb-4">
           Besoin d'aide? Notre assistant fiscal est disponible 24/7
         </p>
-        <Link
-          to="/chat"
-          className="inline-flex items-center gap-2 text-red-600 font-medium hover:text-red-700"
-        >
-          Discuter avec l'assistant
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        <Button asChild variant="link">
+          <Link to="/chat">
+            Discuter avec l'assistant
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </Button>
       </div>
     </div>
   );
