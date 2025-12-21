@@ -2,9 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
+import { extractFromDocument, getDocumentTypes } from './services/documentExtractor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,6 +26,34 @@ function loadFile(path) {
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for file uploads
+const UPLOAD_DIR = join(__dirname, '../../2024/user-uploads');
+if (!existsSync(UPLOAD_DIR)) {
+  mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = file.originalname.split('.').pop();
+    cb(null, `${file.fieldname}-${uniqueSuffix}.${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non supporté. Utilisez JPG, PNG, GIF, WEBP ou PDF.'));
+    }
+  }
+});
 
 // Chat endpoint
 app.post('/api/chat', async (req, res) => {
@@ -116,6 +146,42 @@ app.get('/api/declaration/data', (req, res) => {
 
 app.post('/api/declaration/questionnaire/:id', (req, res) => {
   res.json({ success: true, nextSection: parseInt(req.params.id) + 1 });
+});
+
+// Document extraction endpoints
+app.get('/api/documents/types', (req, res) => {
+  res.json(getDocumentTypes());
+});
+
+app.post('/api/documents/extract', upload.single('document'), async (req, res) => {
+  console.log('=== Document extraction request ===');
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Aucun fichier fourni' });
+  }
+
+  const { documentType } = req.body;
+  if (!documentType) {
+    return res.status(400).json({ error: 'Type de document non spécifié' });
+  }
+
+  console.log(`File: ${req.file.filename}, Type: ${documentType}`);
+
+  try {
+    const result = await extractFromDocument(req.file.path, documentType);
+    console.log('Extraction result:', result.success ? 'Success' : 'Failed');
+    res.json(result);
+  } catch (error) {
+    console.error('Extraction error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all extracted data (stored in localStorage on client, this is for backup)
+app.get('/api/documents/extractions', (req, res) => {
+  // This would typically come from a database
+  // For now, return empty array - data is stored client-side
+  res.json([]);
 });
 
 // Start server
