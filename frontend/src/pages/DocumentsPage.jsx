@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, FileText, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw, X } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3002/api';
@@ -12,6 +12,7 @@ export default function DocumentsPage() {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState(null);
   const [expandedExtraction, setExpandedExtraction] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Load document types from API
   useEffect(() => {
@@ -129,9 +130,15 @@ export default function DocumentsPage() {
     localStorage.setItem('taxDeclarationData', JSON.stringify(merged));
   };
 
-  const deleteExtraction = (id) => {
-    const updated = extractions.filter(e => e.id !== id);
+  const confirmDelete = (extraction) => {
+    setDeleteConfirm(extraction);
+  };
+
+  const deleteExtraction = () => {
+    if (!deleteConfirm) return;
+    const updated = extractions.filter(e => e.id !== deleteConfirm.id);
     saveExtractions(updated);
+    setDeleteConfirm(null);
   };
 
   const getTypeConfig = (typeId) => {
@@ -270,9 +277,10 @@ export default function DocumentsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteExtraction(extraction.id);
+                          confirmDelete(extraction);
                         }}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Supprimer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -383,6 +391,51 @@ export default function DocumentsPage() {
           <div>• Estimation immobilière</div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Supprimer le document?</h3>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-start gap-3 p-4 bg-red-50 rounded-xl">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-red-800">{deleteConfirm.documentName}</p>
+                  <p className="text-sm text-red-700 mt-1">{deleteConfirm.fileName}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-4">
+                Cette action supprimera les données extraites de ce document. Les données déjà appliquées au questionnaire ne seront pas affectées.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 p-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={deleteExtraction}
+                className="flex-1 p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, X, Archive } from 'lucide-react';
+import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, X, Archive, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Results() {
@@ -8,6 +8,7 @@ export default function Results() {
   const [taxEstimate, setTaxEstimate] = useState(null);
   const [showResetModal, setShowResetModal] = useState(false);
   const [archives, setArchives] = useState([]);
+  const [showArchives, setShowArchives] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +41,37 @@ export default function Results() {
     if (saved) {
       setArchives(JSON.parse(saved));
     }
+  };
+
+  const restoreArchive = (archive) => {
+    // Save current data to archives first (if exists)
+    const currentData = localStorage.getItem('taxDeclarationData');
+    if (currentData) {
+      const parsedData = JSON.parse(currentData);
+      const newArchive = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        data: parsedData
+      };
+      const existingArchives = JSON.parse(localStorage.getItem('taxDeclarationArchives') || '[]');
+      existingArchives.unshift(newArchive);
+      const limitedArchives = existingArchives.slice(0, 5);
+      localStorage.setItem('taxDeclarationArchives', JSON.stringify(limitedArchives));
+    }
+
+    // Restore the selected archive
+    localStorage.setItem('taxDeclarationData', JSON.stringify(archive.data));
+    setData(archive.data);
+    if (archive.data.grossSalary) {
+      calculateTax(archive.data);
+    }
+    loadArchives();
+  };
+
+  const deleteArchive = (id) => {
+    const updated = archives.filter(a => a.id !== id);
+    localStorage.setItem('taxDeclarationArchives', JSON.stringify(updated));
+    setArchives(updated);
   };
 
   const handleReset = () => {
@@ -252,6 +284,71 @@ export default function Results() {
         </button>
       </div>
 
+      {/* Archives Section */}
+      {archives.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            onClick={() => setShowArchives(!showArchives)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Archive className="w-5 h-5 text-gray-400" />
+              <span className="font-medium text-gray-900">Déclarations archivées</span>
+              <span className="text-sm text-gray-500">({archives.length})</span>
+            </div>
+            {showArchives ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showArchives && (
+            <div className="border-t border-gray-200 divide-y divide-gray-100">
+              {archives.map((archive, index) => (
+                <div key={archive.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Déclaration #{archives.length - index}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Archivée le {new Date(archive.date).toLocaleDateString('fr-CH', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      {archive.data.grossSalary && (
+                        <p className="text-sm text-gray-400 mt-1">
+                          Revenu: CHF {archive.data.grossSalary.toLocaleString('fr-CH')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => restoreArchive(archive)}
+                        className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        Restaurer
+                      </button>
+                      <button
+                        onClick={() => deleteArchive(archive.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Reset Button */}
       <div className="pt-4 border-t border-gray-200">
         <button
@@ -261,11 +358,6 @@ export default function Results() {
           <RotateCcw className="w-4 h-4" />
           Recommencer une nouvelle déclaration
         </button>
-        {archives.length > 0 && (
-          <p className="text-xs text-center text-gray-400 mt-2">
-            {archives.length} déclaration(s) archivée(s)
-          </p>
-        )}
       </div>
 
       {/* Reset Confirmation Modal */}
