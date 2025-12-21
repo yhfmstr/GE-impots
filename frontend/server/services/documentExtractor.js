@@ -213,6 +213,8 @@ Note: Pour Genève, la valeur locative est déterminée par questionnaire offici
 };
 
 // Convert PDF to images
+const MAX_PDF_PAGES = 10; // Maximum pages to process
+
 async function convertPdfToImages(filePath) {
   const images = [];
   const document = await pdf(filePath, { scale: 2 }); // scale 2 for better quality
@@ -226,8 +228,8 @@ async function convertPdfToImages(filePath) {
       mediaType: 'image/png',
       page: pageNum
     });
-    // Only process first 3 pages to avoid token limits
-    if (pageNum >= 3) break;
+    // Limit pages to avoid excessive API costs
+    if (pageNum >= MAX_PDF_PAGES) break;
   }
 
   return images;
