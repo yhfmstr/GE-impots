@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Copy, Check, MessageSquare, ChevronRight, AlertCircle, FileText, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Copy, Check, MessageSquare, ChevronRight, AlertCircle, FileText, AlertTriangle, Upload, Loader2, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -10,6 +10,7 @@ const GETAX_PAGES = [
     id: 'annexe-a',
     name: 'Annexe A - Activité dépendante',
     description: 'Salaires, cotisations sociales, frais professionnels',
+    documentTypes: ['certificat-salaire', 'attestation-3a', 'attestation-lpp-rachat', 'facture-formation'],
     fields: [
       { code: '11.10', name: 'Salaires bruts c.A', source: 'Certificat champ 8', dataKey: 'grossSalary' },
       { code: '11.15', name: 'Bonus, gratification c.A', source: 'Certificat', dataKey: 'bonus' },
@@ -24,6 +25,7 @@ const GETAX_PAGES = [
     id: 'annexe-c',
     name: 'Annexe C - Assurances et prévoyance',
     description: 'Primes maladie, assurances-vie, 3ème pilier B',
+    documentTypes: ['attestation-maladie', 'attestation-vie', 'facture-garde'],
     fields: [
       { code: '52.21', name: 'Primes assurance-maladie', source: 'Attestation caisse', dataKey: 'healthInsurance', limit: 16207 },
       { code: '52.22', name: 'Primes assurance-accidents', source: 'Attestation', dataKey: 'accidentInsurance' },
@@ -35,6 +37,7 @@ const GETAX_PAGES = [
     id: 'annexe-d',
     name: 'Annexe D - Fortune immobilière',
     description: 'Valeur locative, frais entretien, hypothèque',
+    documentTypes: ['attestation-hypothecaire', 'estimation-immobiliere'],
     fields: [
       { code: '15.10', name: 'Valeur locative brute', source: 'Questionnaire officiel', dataKey: 'rentalValue' },
       { code: '35.10', name: 'Frais entretien forfait ICC', calculated: true, formula: '≤10 ans: 15%, >10 ans: 25%' },
@@ -48,6 +51,7 @@ const GETAX_PAGES = [
     id: 'annexe-f',
     name: 'Annexe F - Fortune mobilière',
     description: 'Comptes bancaires, titres, véhicules',
+    documentTypes: ['releve-bancaire', 'etat-titres'],
     fields: [
       { code: '60.10', name: 'Comptes bancaires CH', source: 'Relevés 31.12', dataKey: 'bankAccounts' },
       { code: '60.20', name: 'Comptes bancaires étrangers', source: 'Relevés 31.12', dataKey: 'foreignBankAccounts' },
@@ -60,12 +64,29 @@ const GETAX_PAGES = [
     id: 'annexe-e',
     name: 'Annexe E - Dettes',
     description: 'Dettes privées, intérêts passifs',
+    documentTypes: ['releve-credit'],
     fields: [
       { code: '55.10', name: 'Intérêts passifs privés', source: 'Relevés crédits', dataKey: 'loanInterest' },
       { code: '66.10', name: 'Dettes privées', source: 'Contrats, relevés', dataKey: 'personalLoans' },
     ]
   },
 ];
+
+// Document type names for display
+const DOCUMENT_TYPE_NAMES = {
+  'certificat-salaire': 'Certificat de salaire',
+  'attestation-3a': 'Attestation 3ème pilier A',
+  'attestation-lpp-rachat': 'Attestation rachat LPP',
+  'facture-formation': 'Facture formation continue',
+  'attestation-maladie': 'Attestation assurance maladie',
+  'attestation-vie': 'Attestation assurance-vie (3b)',
+  'facture-garde': 'Facture frais de garde',
+  'attestation-hypothecaire': 'Attestation hypothécaire',
+  'estimation-immobiliere': 'Estimation immobilière',
+  'releve-bancaire': 'Relevé bancaire',
+  'etat-titres': 'État des titres',
+  'releve-credit': 'Relevé de crédit/leasing',
+};
 
 export default function GuidePage() {
   const [selectedPage, setSelectedPage] = useState(GETAX_PAGES[0]);
@@ -76,6 +97,14 @@ export default function GuidePage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [userData, setUserData] = useState({});
   const [hasData, setHasData] = useState(false);
+
+  // Upload state
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadDocType, setUploadDocType] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
 
   // Load data from localStorage (saved by questionnaire)
   useEffect(() => {
@@ -132,6 +161,101 @@ export default function GuidePage() {
     }
   };
 
+  // Reset upload state when changing page
+  useEffect(() => {
+    if (selectedPage.documentTypes?.length > 0) {
+      setUploadDocType(selectedPage.documentTypes[0]);
+    }
+    setUploadSuccess(null);
+    setUploadError(null);
+  }, [selectedPage]);
+
+  const handleDrag = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  }, [uploadDocType]);
+
+  const handleFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = async (file) => {
+    if (!uploadDocType) {
+      setUploadError('Veuillez sélectionner un type de document');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('documentType', uploadDocType);
+
+    try {
+      const response = await axios.post(`${API_URL}/documents/extract`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.success) {
+        // Apply extracted data to questionnaire
+        const existing = JSON.parse(localStorage.getItem('taxDeclarationData') || '{}');
+        const merged = { ...existing };
+        Object.entries(response.data.data).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== '') {
+            merged[key] = value;
+          }
+        });
+        localStorage.setItem('taxDeclarationData', JSON.stringify(merged));
+
+        // Update local state
+        setUserData(merged);
+        setHasData(true);
+
+        // Save extraction to extractions list
+        const extractions = JSON.parse(localStorage.getItem('documentExtractions') || '[]');
+        extractions.unshift({
+          id: Date.now(),
+          fileName: file.name,
+          ...response.data,
+          timestamp: new Date().toISOString(),
+        });
+        localStorage.setItem('documentExtractions', JSON.stringify(extractions));
+
+        setUploadSuccess({
+          documentName: response.data.documentName,
+          fieldsExtracted: Object.keys(response.data.data).filter(k =>
+            response.data.data[k] !== null && response.data.data[k] !== undefined
+          ).length
+        });
+      } else {
+        setUploadError(response.data.error || 'Erreur lors de l\'extraction');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError(err.response?.data?.error || 'Erreur lors du téléchargement');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
@@ -179,6 +303,117 @@ export default function GuidePage() {
         </select>
         <p className="text-sm text-gray-500 mt-2">{selectedPage.description}</p>
       </div>
+
+      {/* Document Upload Section */}
+      {selectedPage.documentTypes?.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          <button
+            onClick={() => setUploadOpen(!uploadOpen)}
+            className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-gray-900">Télécharger un document pour cette page</span>
+            </div>
+            <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${uploadOpen ? 'rotate-90' : ''}`} />
+          </button>
+
+          {uploadOpen && (
+            <div className="p-4 border-t border-gray-200 space-y-4">
+              {/* Document type selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type de document:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPage.documentTypes.map(docType => (
+                    <button
+                      key={docType}
+                      onClick={() => setUploadDocType(docType)}
+                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        uploadDocType === docType
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {DOCUMENT_TYPE_NAMES[docType]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Upload zone */}
+              <div
+                className={`border-2 border-dashed rounded-xl p-6 transition-colors ${
+                  dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="text-center">
+                  {uploading ? (
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
+                      <p className="text-gray-600">Analyse en cours...</p>
+                      <p className="text-sm text-gray-400">Extraction des données avec Claude AI</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-700 mb-2">
+                        Glissez votre <strong>{DOCUMENT_TYPE_NAMES[uploadDocType]}</strong> ici
+                      </p>
+                      <label className="cursor-pointer">
+                        <span className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                          Choisir un fichier
+                        </span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+                          onChange={handleFileInput}
+                        />
+                      </label>
+                      <p className="text-xs text-gray-400 mt-3">JPG, PNG, PDF (max 10 MB)</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Success message */}
+              {uploadSuccess && (
+                <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-green-800">{uploadSuccess.documentName} analysé</p>
+                    <p className="text-sm text-green-700">
+                      {uploadSuccess.fieldsExtracted} champs extraits et appliqués aux rubriques ci-dessous.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error message */}
+              {uploadError && (
+                <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-red-800">{uploadError}</p>
+                    <button
+                      onClick={() => setUploadError(null)}
+                      className="text-sm text-red-600 hover:text-red-800 mt-1"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Fields List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
