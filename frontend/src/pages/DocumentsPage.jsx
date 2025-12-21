@@ -286,7 +286,8 @@ export default function DocumentsPage() {
 
                   {/* Expanded Content */}
                   {isExpanded && extraction.success && (
-                    <div className="mt-4 pl-13">
+                    <div className="mt-4 pl-13 space-y-4">
+                      {/* Main extracted data */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h4 className="text-sm font-medium text-gray-700 mb-3">Données extraites</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -299,15 +300,51 @@ export default function DocumentsPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="mt-4 pt-3 border-t border-gray-200">
-                          <button
-                            onClick={() => applyExtractedData(extraction.data)}
-                            className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                            Réappliquer au questionnaire
-                          </button>
+                      </div>
+
+                      {/* Notes and warnings */}
+                      {(extraction.data.notes || extraction.data.warnings || extraction.data.additionalAmounts) && (
+                        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                          <h4 className="text-sm font-medium text-amber-800 mb-3">Informations supplémentaires</h4>
+
+                          {extraction.data.warnings && (
+                            <div className="mb-3">
+                              <span className="text-xs font-medium text-amber-700 uppercase">Points d'attention:</span>
+                              <p className="text-sm text-amber-900 mt-1">{extraction.data.warnings}</p>
+                            </div>
+                          )}
+
+                          {extraction.data.notes && (
+                            <div className="mb-3">
+                              <span className="text-xs font-medium text-amber-700 uppercase">Notes:</span>
+                              <p className="text-sm text-amber-900 mt-1">{extraction.data.notes}</p>
+                            </div>
+                          )}
+
+                          {extraction.data.additionalAmounts && (
+                            <div className="mb-3">
+                              <span className="text-xs font-medium text-amber-700 uppercase">Autres montants:</span>
+                              <p className="text-sm text-amber-900 mt-1">{extraction.data.additionalAmounts}</p>
+                            </div>
+                          )}
+
+                          {extraction.data.period && (
+                            <div className="text-xs text-amber-700">
+                              Période: {extraction.data.period}
+                            </div>
+                          )}
                         </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => applyExtractedData(extraction.data)}
+                          className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Réappliquer au questionnaire
+                        </button>
                       </div>
                     </div>
                   )}

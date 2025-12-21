@@ -287,16 +287,35 @@ RÈGLES IMPORTANTES:
 3. Supprime les apostrophes et espaces des nombres (ex: 120'000 → 120000)
 4. Si une information n'est pas trouvée, utilise null
 5. Pour les booléens, retourne true ou false
-6. Sois précis et vérifie les champs standards des documents suisses`;
+6. Sois précis et vérifie les champs standards des documents suisses
+7. IMPORTANT: Cherche aussi les notes, remarques, informations supplémentaires ou cas particuliers qui pourraient être utiles pour la déclaration fiscale
+8. Signale toute information inhabituelle ou importante (ex: revenus exceptionnels, changements de situation, etc.)`;
+
+  // Additional fields to always extract
+  const additionalFields = [
+    { key: 'notes', label: 'Notes ou remarques importantes', type: 'string' },
+    { key: 'warnings', label: 'Avertissements ou points d\'attention', type: 'string' },
+    { key: 'additionalAmounts', label: 'Autres montants trouvés (JSON)', type: 'string' },
+    { key: 'period', label: 'Période concernée', type: 'string' },
+    { key: 'documentDate', label: 'Date du document', type: 'string' },
+  ];
+
+  const allFields = [...docConfig.fields, ...additionalFields];
 
   const userPrompt = `${docConfig.prompt}
 
+EXTRACTION ADDITIONNELLE IMPORTANTE:
+- Cherche toutes les notes, remarques ou commentaires dans le document
+- Identifie les montants supplémentaires non listés ci-dessus
+- Signale les points d'attention (cases cochées, mentions spéciales, etc.)
+- Note la période et la date du document
+
 Retourne les données extraites au format JSON avec ces clés:
-${docConfig.fields.map(f => `- ${f.key}: ${f.label} (${f.type})`).join('\n')}
+${allFields.map(f => `- ${f.key}: ${f.label} (${f.type})`).join('\n')}
 
 Format de réponse attendu (JSON uniquement):
 {
-  ${docConfig.fields.map(f => `"${f.key}": ${f.type === 'number' ? '12345' : f.type === 'boolean' ? 'true' : '"valeur"'}`).join(',\n  ')}
+  ${allFields.map(f => `"${f.key}": ${f.type === 'number' ? '12345' : f.type === 'boolean' ? 'true' : '"valeur ou null"'}`).join(',\n  ')}
 }`;
 
   try {
@@ -335,6 +354,7 @@ Format de réponse attendu (JSON uniquement):
       documentType,
       documentName: docConfig.name,
       fields: docConfig.fields,
+      additionalFields: additionalFields,
       data: extractedData,
       usage: response.usage,
     };
