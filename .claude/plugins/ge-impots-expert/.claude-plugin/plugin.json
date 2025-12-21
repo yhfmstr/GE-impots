@@ -1,0 +1,96 @@
+{
+  "name": "ge-impots-expert",
+  "version": "1.0.0",
+  "description": "Expert fiscal pour la déclaration d'impôts de Genève, Suisse. Aide au remplissage et à l'optimisation de la déclaration fiscale genevoise.",
+  "author": "Tax Expert Plugin",
+  "agents": [
+    {
+      "name": "tax-coordinator",
+      "description": "Coordinateur fiscal principal - orchestre tous les agents spécialisés pour analyser et optimiser votre déclaration d'impôts genevoise. Utilisez cet agent pour une analyse complète de votre situation fiscale.",
+      "path": "agents/tax-coordinator.md"
+    },
+    {
+      "name": "pdf-extractor",
+      "description": "Agent d'extraction de documents PDF - extrait et structure le contenu des guides fiscaux et documents personnels (certificats de salaire, relevés bancaires, attestations). Utilisez pour extraire des informations de documents fiscaux.",
+      "path": "agents/pdf-extractor.md"
+    },
+    {
+      "name": "revenus-expert",
+      "description": "Expert en revenus - analyse et optimise la déclaration de tous types de revenus (salaires, indépendant, rentes, prestations sociales, revenus de fortune). Spécialiste de la classification et traitement fiscal des revenus.",
+      "path": "agents/revenus-expert.md"
+    },
+    {
+      "name": "deductions-expert",
+      "description": "Expert en déductions fiscales - maximise vos déductions légales (frais professionnels, prévoyance 3a/3b, assurances, frais médicaux, dons, garde d'enfants). Optimise le choix entre forfait et frais effectifs.",
+      "path": "agents/deductions-expert.md"
+    },
+    {
+      "name": "fortune-expert",
+      "description": "Expert en fortune - gère la déclaration de patrimoine (comptes bancaires, titres, véhicules, assurances-vie, créances). Optimise l'évaluation des actifs et l'impôt sur la fortune.",
+      "path": "agents/fortune-expert.md"
+    },
+    {
+      "name": "immobilier-expert",
+      "description": "Expert immobilier - spécialiste de la fiscalité immobilière genevoise (valeur locative, frais d'entretien, intérêts hypothécaires, IIC). Optimise entre forfait et frais effectifs pour l'entretien.",
+      "path": "agents/immobilier-expert.md"
+    },
+    {
+      "name": "compliance-checker",
+      "description": "Vérificateur de conformité - contrôle la conformité de votre déclaration avec les règles fiscales genevoises. Détecte les erreurs, incohérences et risques de contrôle fiscal.",
+      "path": "agents/compliance-checker.md"
+    },
+    {
+      "name": "optimizer",
+      "description": "Optimiseur fiscal global - analyse multi-scénarios pour minimiser légalement votre charge fiscale. Compare ICC/IFD, planification pluriannuelle, recommandations de fin d'année.",
+      "path": "agents/optimizer.md"
+    },
+    {
+      "name": "getax-guide",
+      "description": "Guide GeTax pas à pas - vous accompagne page par page dans GeTax en vous indiquant exactement quoi entrer dans chaque rubrique. Utilisez cet agent pendant que vous remplissez votre déclaration sur ge.ch.",
+      "path": "agents/getax-guide.md"
+    }
+  ],
+  "skills": [
+    {
+      "name": "analyser-situation",
+      "description": "Analyse complète de votre situation fiscale à partir des documents fournis",
+      "path": "skills/analyser-situation.md"
+    },
+    {
+      "name": "optimiser-deductions",
+      "description": "Identifie toutes les déductions possibles et opportunités d'optimisation",
+      "path": "skills/optimiser-deductions.md"
+    },
+    {
+      "name": "extraire-documents",
+      "description": "Extrait les informations de vos documents fiscaux (certificats de salaire, etc.)",
+      "path": "skills/extraire-documents.md"
+    },
+    {
+      "name": "verifier-conformite",
+      "description": "Vérifie la conformité de la déclaration avec les règles fiscales genevoises",
+      "path": "skills/verifier-conformite.md"
+    },
+    {
+      "name": "calculer-impots",
+      "description": "Calcule l'estimation des impôts (ICC + IFD + fortune)",
+      "path": "skills/calculer-impots.md"
+    },
+    {
+      "name": "generer-rapport",
+      "description": "Génère un rapport fiscal complet avec recommandations",
+      "path": "skills/generer-rapport.md"
+    },
+    {
+      "name": "questionnaire",
+      "description": "Questionnaire interactif pour collecter toutes les informations nécessaires",
+      "path": "skills/questionnaire.md"
+    }
+  ],
+  "settings": {
+    "defaultYear": "2024",
+    "language": "fr",
+    "canton": "GE",
+    "knowledgeBasePath": "../../{year}/knowledge"
+  }
+}
