@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import path from 'path';
+import { pdf } from 'pdf-to-img';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -211,6 +212,27 @@ Note: Pour Genève, la valeur locative est déterminée par questionnaire offici
   },
 };
 
+// Convert PDF to images
+async function convertPdfToImages(filePath) {
+  const images = [];
+  const document = await pdf(filePath, { scale: 2 }); // scale 2 for better quality
+
+  let pageNum = 0;
+  for await (const image of document) {
+    pageNum++;
+    // image is a Buffer containing PNG data
+    images.push({
+      data: image.toString('base64'),
+      mediaType: 'image/png',
+      page: pageNum
+    });
+    // Only process first 3 pages to avoid token limits
+    if (pageNum >= 3) break;
+  }
+
+  return images;
+}
+
 // Extract data from document using Claude Vision
 export async function extractFromDocument(filePath, documentType) {
   const docConfig = DOCUMENT_TYPES[documentType];
@@ -218,17 +240,41 @@ export async function extractFromDocument(filePath, documentType) {
     throw new Error(`Type de document inconnu: ${documentType}`);
   }
 
-  // Read file and convert to base64
-  const fileBuffer = readFileSync(filePath);
-  const base64Data = fileBuffer.toString('base64');
-
-  // Determine media type
   const ext = path.extname(filePath).toLowerCase();
-  let mediaType = 'image/jpeg';
-  if (ext === '.png') mediaType = 'image/png';
-  else if (ext === '.pdf') mediaType = 'application/pdf';
-  else if (ext === '.gif') mediaType = 'image/gif';
-  else if (ext === '.webp') mediaType = 'image/webp';
+  let imageContents = [];
+
+  // Handle PDF conversion
+  if (ext === '.pdf') {
+    console.log('Converting PDF to images...');
+    const pdfImages = await convertPdfToImages(filePath);
+    imageContents = pdfImages.map(img => ({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: img.mediaType,
+        data: img.data,
+      }
+    }));
+    console.log(`Converted ${pdfImages.length} page(s)`);
+  } else {
+    // Read image file directly
+    const fileBuffer = readFileSync(filePath);
+    const base64Data = fileBuffer.toString('base64');
+
+    let mediaType = 'image/jpeg';
+    if (ext === '.png') mediaType = 'image/png';
+    else if (ext === '.gif') mediaType = 'image/gif';
+    else if (ext === '.webp') mediaType = 'image/webp';
+
+    imageContents = [{
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: base64Data,
+      }
+    }];
+  }
 
   const systemPrompt = `Tu es un expert en extraction de données fiscales suisses.
 Tu analyses des documents fiscaux et extrait les informations demandées avec précision.
@@ -260,14 +306,7 @@ Format de réponse attendu (JSON uniquement):
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64Data,
-              },
-            },
+            ...imageContents,
             {
               type: 'text',
               text: userPrompt,
