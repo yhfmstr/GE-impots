@@ -34,6 +34,8 @@ export const STORAGE_KEYS = {
   ARCHIVES: 'taxDeclarationArchives',
   SETTINGS: 'userSettings',
   CHAT_HISTORY: 'chatConversations',
+  SUGGESTIONS: 'fieldSuggestions', // Auto-fill suggestions from documents
+  WIZARD_PROFILE: 'wizardProfile', // Selected wizard profile
 };
 
 // Encrypt data with version prefix

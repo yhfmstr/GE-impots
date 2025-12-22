@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, Archive, ChevronUp, ChevronDown, Trash2, FileText } from 'lucide-react';
+import { Calculator, TrendingDown, AlertTriangle, CheckCircle, Download, RotateCcw, Archive, ChevronUp, ChevronDown, Trash2, FileText, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { loadSecure, saveSecure, STORAGE_KEYS, exportData } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { TAX_YEAR, getExportFilename } from '@/config/taxYear';
+import { calculateTaxWithSteps } from '@/lib/taxCalculator';
+import TaxBreakdown from '@/components/TaxBreakdown';
 
 export default function Results() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [taxEstimate, setTaxEstimate] = useState(null);
+  const [calculationSteps, setCalculationSteps] = useState([]);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [archives, setArchives] = useState([]);
   const [showArchives, setShowArchives] = useState(false);
@@ -114,7 +119,7 @@ export default function Results() {
   const downloadReport = () => {
     const reportData = {
       generatedAt: new Date().toISOString(),
-      year: 2024,
+      year: TAX_YEAR,
       declaration: data,
       estimate: taxEstimate,
       extractions: loadSecure(STORAGE_KEYS.EXTRACTIONS, [])
@@ -124,7 +129,7 @@ export default function Results() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `declaration-impots-2024-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `${getExportFilename('declaration-impots')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -135,7 +140,7 @@ export default function Results() {
   const downloadTextReport = () => {
     const lines = [
       '='.repeat(60),
-      'DÉCLARATION D\'IMPÔTS GENÈVE 2024',
+      `DÉCLARATION D'IMPÔTS GENÈVE ${TAX_YEAR}`,
       '='.repeat(60),
       `Généré le: ${new Date().toLocaleDateString('fr-CH')}`,
       '',
@@ -169,7 +174,7 @@ export default function Results() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rapport-impots-2024-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `${getExportFilename('rapport-impots')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -177,60 +182,14 @@ export default function Results() {
   };
 
   const calculateTax = (declarationData) => {
-    const grossIncome = declarationData.grossSalary || declarationData.income?.grossSalary || 0;
-    const avsContributions = declarationData.avsContributions || declarationData.income?.avsContributions || 0;
-    const lppContributions = declarationData.lppContributions || declarationData.income?.lppContributions || 0;
-    const pilier3a = declarationData.pilier3a || declarationData.deductions?.pilier3a || 0;
-    const healthInsurance = declarationData.healthInsurance || declarationData.deductions?.healthInsurance || 0;
-    const bankAccounts = declarationData.bankAccounts || declarationData.wealth?.bankAccounts || 0;
-    const securities = declarationData.securities || declarationData.wealth?.securities || 0;
-    const vehicleValue = declarationData.vehicleValue || declarationData.wealth?.vehicleValue || 0;
-    const personalLoans = declarationData.personalLoans || declarationData.wealth?.personalLoans || 0;
-    const otherDebts = declarationData.otherDebts || declarationData.wealth?.otherDebts || 0;
+    // Use the new step-by-step calculator
+    const result = calculateTaxWithSteps(declarationData);
 
-    const totalDeductions =
-      avsContributions +
-      lppContributions +
-      pilier3a +
-      healthInsurance +
-      Math.min(grossIncome * 0.03, 1796);
+    // Set the summary for backwards compatibility
+    setTaxEstimate(result.summary);
 
-    const taxableIncome = Math.max(0, grossIncome - totalDeductions);
-
-    let icc = 0;
-    if (taxableIncome > 0) {
-      if (taxableIncome <= 17493) icc = taxableIncome * 0.08;
-      else if (taxableIncome <= 21076) icc = 1399 + (taxableIncome - 17493) * 0.09;
-      else if (taxableIncome <= 23184) icc = 1722 + (taxableIncome - 21076) * 0.10;
-      else if (taxableIncome <= 25291) icc = 1933 + (taxableIncome - 23184) * 0.11;
-      else if (taxableIncome <= 27399) icc = 2165 + (taxableIncome - 25291) * 0.12;
-      else if (taxableIncome <= 33198) icc = 2417 + (taxableIncome - 27399) * 0.13;
-      else if (taxableIncome <= 36889) icc = 3171 + (taxableIncome - 33198) * 0.14;
-      else if (taxableIncome <= 40580) icc = 3688 + (taxableIncome - 36889) * 0.145;
-      else if (taxableIncome <= 45854) icc = 4223 + (taxableIncome - 40580) * 0.15;
-      else if (taxableIncome <= 72420) icc = 5014 + (taxableIncome - 45854) * 0.155;
-      else if (taxableIncome <= 119107) icc = 9132 + (taxableIncome - 72420) * 0.16;
-      else if (taxableIncome <= 160520) icc = 16602 + (taxableIncome - 119107) * 0.175;
-      else if (taxableIncome <= 498293) icc = 23849 + (taxableIncome - 160520) * 0.185;
-      else icc = 86387 + (taxableIncome - 498293) * 0.19;
-    }
-
-    const centimesAdd = icc * 0.45;
-    const ifd = taxableIncome * 0.115 * 0.8;
-    const totalWealth = bankAccounts + securities + vehicleValue - personalLoans - otherDebts;
-    const fortuneTax = Math.max(0, (totalWealth - 87864) * 0.005);
-
-    setTaxEstimate({
-      grossIncome,
-      totalDeductions,
-      taxableIncome,
-      icc: Math.round(icc),
-      centimesAdd: Math.round(centimesAdd),
-      ifd: Math.round(ifd),
-      fortuneTax: Math.round(fortuneTax),
-      total: Math.round(icc + centimesAdd + ifd + fortuneTax),
-      effectiveRate: taxableIncome > 0 ? ((icc + centimesAdd + ifd) / grossIncome * 100).toFixed(1) : 0
-    });
+    // Store steps for transparency display
+    setCalculationSteps(result.steps);
   };
 
   if (loading) {
@@ -303,7 +262,7 @@ export default function Results() {
       {/* Tax Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Estimation des impôts 2024</CardTitle>
+          <CardTitle>Estimation des impôts {TAX_YEAR}</CardTitle>
           <CardDescription>Basée sur les informations fournies</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -338,10 +297,34 @@ export default function Results() {
       <Alert variant="info">
         <AlertTriangle className="h-5 w-5" />
         <AlertDescription>
-          <strong>Estimation indicative:</strong> Ce calcul est une approximation basée sur les barèmes 2024.
+          <strong>Estimation indicative:</strong> Ce calcul est une approximation basée sur les barèmes {TAX_YEAR}.
           Le montant final peut varier selon votre situation exacte et les centimes additionnels de votre commune.
         </AlertDescription>
       </Alert>
+
+      {/* Calculation Transparency Toggle */}
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setShowBreakdown(!showBreakdown)}
+      >
+        {showBreakdown ? (
+          <>
+            <EyeOff className="w-4 h-4 mr-2" />
+            Masquer le détail du calcul
+          </>
+        ) : (
+          <>
+            <Eye className="w-4 h-4 mr-2" />
+            Voir le détail du calcul
+          </>
+        )}
+      </Button>
+
+      {/* Calculation Breakdown */}
+      {showBreakdown && calculationSteps.length > 0 && (
+        <TaxBreakdown steps={calculationSteps} />
+      )}
 
       {/* Actions */}
       <div className="flex gap-4">

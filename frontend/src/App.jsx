@@ -6,6 +6,7 @@ import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
 import ResultsPage from './pages/ResultsPage';
 import GuidePage from './pages/GuidePage';
+import WizardPage from './pages/WizardPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/declaration" element={<GuidePage />} />
             <Route path="/guide" element={<Navigate to="/declaration" replace />} />
+            <Route path="/wizard" element={<WizardPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/results" element={<ResultsPage />} />
           </Routes>

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw, Sparkles } from 'lucide-react';
+import { Upload, Check, AlertCircle, Loader2, ChevronDown, ChevronUp, Trash2, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
 import api, { uploadApi } from '@/lib/api';
 import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
+import { createSuggestion, EXTRACTION_FIELD_MAP } from '@/lib/inferenceRules';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,9 @@ export default function DocumentsPage() {
   const [detectionResult, setDetectionResult] = useState(null);
   const [pendingFile, setPendingFile] = useState(null);
   const [pendingFileId, setPendingFileId] = useState(null);
+
+  // Suggestions notification
+  const [suggestionNotification, setSuggestionNotification] = useState(null);
 
   useEffect(() => {
     loadDocumentTypes();
@@ -187,7 +192,10 @@ export default function DocumentsPage() {
 
         const updated = [newExtraction, ...extractions];
         saveExtractions(updated);
-        applyExtractedData(response.data.data);
+
+        // Create suggestions instead of direct merge
+        createSuggestionsFromExtraction(response.data.data, documentType, file.name);
+
         setExpandedExtraction(newExtraction.id);
       } else {
         setError(response.data.error || 'Erreur lors de l\'extraction');
@@ -224,6 +232,68 @@ export default function DocumentsPage() {
     setPendingFileId(null);
   };
 
+  // Create suggestions from extracted data instead of direct merge
+  const createSuggestionsFromExtraction = (data, documentType, fileName) => {
+    try {
+      // Load existing suggestions
+      const existingSuggestions = loadSecure(STORAGE_KEYS.SUGGESTIONS, []);
+      const newSuggestions = [];
+
+      // Map extracted fields to suggestions
+      Object.entries(data).forEach(([key, value]) => {
+        // Skip meta fields
+        if (['notes', 'warnings', 'additionalAmounts', 'period'].includes(key)) return;
+        if (value === null || value === undefined || value === '') return;
+
+        // Check if we already have a pending suggestion for this field
+        const existingPending = existingSuggestions.find(
+          s => s.fieldKey === key && s.accepted === null
+        );
+        if (existingPending) return; // Don't duplicate
+
+        // Create new suggestion
+        const suggestion = createSuggestion(
+          { confidence: 0.85 }, // Default confidence from document extraction
+          key,
+          value,
+          documentType,
+          fileName
+        );
+
+        // Add label from field map if available
+        const fieldInfo = EXTRACTION_FIELD_MAP[key];
+        if (fieldInfo) {
+          suggestion.annexe = fieldInfo.annexe;
+          suggestion.rubrique = fieldInfo.rubrique;
+        }
+
+        newSuggestions.push(suggestion);
+      });
+
+      // Save combined suggestions
+      if (newSuggestions.length > 0) {
+        const combined = [...newSuggestions, ...existingSuggestions];
+        saveSecure(STORAGE_KEYS.SUGGESTIONS, combined);
+
+        // Show notification
+        setSuggestionNotification({
+          count: newSuggestions.length,
+          fileName
+        });
+
+        // Auto-hide notification after 5 seconds
+        setTimeout(() => {
+          setSuggestionNotification(null);
+        }, 5000);
+      }
+
+      return newSuggestions.length;
+    } catch {
+      return 0;
+    }
+  };
+
+  // Legacy direct merge (for manual "reapply" button)
   const applyExtractedData = (data) => {
     try {
       const existing = loadSecure(STORAGE_KEYS.TAX_DATA, {});
@@ -372,6 +442,32 @@ export default function DocumentsPage() {
             <span>{error}</span>
             <Button variant="ghost" size="sm" onClick={() => setError(null)}>
               Fermer
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Suggestion Success Notification */}
+      {suggestionNotification && (
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-green-800">
+                <strong>{suggestionNotification.count} champ{suggestionNotification.count > 1 ? 's' : ''}</strong> extrait{suggestionNotification.count > 1 ? 's' : ''} de {suggestionNotification.fileName}
+              </span>
+              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                <Sparkles className="w-3 h-3 mr-1" />
+                À valider
+              </Badge>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-green-700 border-green-300 hover:bg-green-100"
+              onClick={() => window.location.href = '/declaration'}
+            >
+              Voir les suggestions
             </Button>
           </AlertDescription>
         </Alert>
