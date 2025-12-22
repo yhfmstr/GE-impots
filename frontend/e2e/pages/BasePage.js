@@ -11,7 +11,7 @@ export class BasePage {
     this.navDeclaration = page.getByRole('link', { name: 'Déclaration' });
     this.navDocuments = page.getByRole('link', { name: 'Documents' });
     this.navResults = page.getByRole('link', { name: 'Résultats' });
-    this.logo = page.getByRole('link', { name: 'GE Impôts Genève 2024' });
+    this.logo = page.getByRole('link', { name: 'GE Impôts Genève' });
   }
 
   async goto(path = '/') {

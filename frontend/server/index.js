@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, existsSync } from 'fs';
+import helmet from 'helmet';
+import { readFileSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,6 +21,9 @@ const client = getClient();
 
 // Simple logger for production
 const log = {
+  info: (context, message) => {
+    console.log(`[${new Date().toISOString()}] [INFO] ${context}: ${message}`);
+  },
   error: (context, error) => {
     console.error(`[${new Date().toISOString()}] [ERROR] ${context}:`, {
       message: error.message,
@@ -30,6 +34,48 @@ const log = {
     console.warn(`[${new Date().toISOString()}] [WARN] ${context}: ${message}`);
   }
 };
+
+// File cleanup job - removes files older than 1 hour
+const FILE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // Run every 15 minutes
+
+function cleanupOldFiles() {
+  try {
+    const uploadPath = join(__dirname, '../../2024/user-uploads');
+    if (!existsSync(uploadPath)) return;
+
+    const now = Date.now();
+    const files = readdirSync(uploadPath);
+    let deletedCount = 0;
+
+    for (const file of files) {
+      // Skip hidden files and directories
+      if (file.startsWith('.')) continue;
+
+      const filePath = join(uploadPath, file);
+      try {
+        const stats = statSync(filePath);
+        if (stats.isFile() && (now - stats.mtimeMs) > FILE_MAX_AGE_MS) {
+          unlinkSync(filePath);
+          deletedCount++;
+        }
+      } catch (err) {
+        log.warn('Cleanup', `Could not process file ${file}: ${err.message}`);
+      }
+    }
+
+    if (deletedCount > 0) {
+      log.info('Cleanup', `Removed ${deletedCount} old file(s) from uploads`);
+    }
+  } catch (error) {
+    log.error('Cleanup', error);
+  }
+}
+
+// Start cleanup job
+setInterval(cleanupOldFiles, CLEANUP_INTERVAL_MS);
+// Run once at startup after a short delay
+setTimeout(cleanupOldFiles, 5000);
 
 // Knowledge paths
 const AGENTS_PATH = join(__dirname, '../../.claude/plugins/ge-impots-expert/agents');
@@ -48,6 +94,29 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000'
 ];
+
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "https://api.anthropic.com"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow embedding for development
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
 app.use(cors({
   origin: (origin, callback) => {

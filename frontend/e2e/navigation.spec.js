@@ -63,7 +63,7 @@ test.describe('Navigation Tests', () => {
 
   test.describe('Page Title Verification', () => {
     test('all pages should have correct title', async ({ page }) => {
-      const expectedTitle = 'GE-Impôts 2024 - Déclaration fiscale Genève';
+      const expectedTitle = 'Impôts Genève - Déclaration fiscale';
 
       // Home
       await page.goto('/');

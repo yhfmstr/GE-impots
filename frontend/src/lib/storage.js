@@ -33,6 +33,7 @@ export const STORAGE_KEYS = {
   EXTRACTIONS: 'documentExtractions',
   ARCHIVES: 'taxDeclarationArchives',
   SETTINGS: 'userSettings',
+  CHAT_HISTORY: 'chatConversations',
 };
 
 // Encrypt data with version prefix

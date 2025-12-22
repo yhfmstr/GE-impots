@@ -45,7 +45,7 @@ test.describe('Declaration Guide Tests', () => {
       expect(currentPage).toContain('Annexe A');
     });
 
-    test('should switch to Annexe C - Assurances', async ({ page }) => {
+    test('should switch to Annexe C - Autres revenus et déductions', async ({ page }) => {
       const guidePage = new GuidePage(page);
       await guidePage.goto();
 
