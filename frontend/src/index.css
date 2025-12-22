@@ -1,22 +1,259 @@
 @import "tailwindcss";
 
-body {
-  background-color: #f9fafb;
-  color: #111827;
-  min-height: 100vh;
+/* ============================================
+   GE-impots Design System - Organic Theme
+   ============================================
+   A calm, natural, organic color palette with
+   warm tones. Dark theme is the default.
+   ============================================ */
+
+/* === Base Theme Variables (Dark - Default) === */
+@theme {
+  /* === Brand Colors (constant) === */
+  --color-geneva-red: #E30613;
+  --color-geneva-dark: #1A1918;
+
+  /* === Primary (Geneva Red - Brand) === */
+  --color-primary: #D64550;
+  --color-primary-hover: #C43D47;
+  --color-primary-light: #3D2528;
+  --color-primary-foreground: #F2F0ED;
+
+  /* === Secondary === */
+  --color-secondary: #3D3B39;
+  --color-secondary-hover: #4A4745;
+  --color-secondary-foreground: #E8E5E1;
+
+  /* === Muted === */
+  --color-muted: #262524;
+  --color-muted-foreground: #9A958F;
+
+  /* === Accent === */
+  --color-accent: #3D3B39;
+  --color-accent-foreground: #F2F0ED;
+
+  /* === Background & Foreground === */
+  --color-background: #1A1918;
+  --color-foreground: #F2F0ED;
+
+  /* === Card === */
+  --color-card: #262524;
+  --color-card-foreground: #F2F0ED;
+
+  /* === Popover === */
+  --color-popover: #2E2D2B;
+  --color-popover-foreground: #F2F0ED;
+
+  /* === Border & Input === */
+  --color-border: #3D3B39;
+  --color-input: #3D3B39;
+  --color-ring: #D64550;
+
+  /* === Success (Sage Green) === */
+  --color-success: #6B9B7A;
+  --color-success-light: #1E2D23;
+  --color-success-foreground: #F2F0ED;
+  --color-success-muted: #8BB89A;
+
+  /* === Warning (Warm Amber) === */
+  --color-warning: #C4973A;
+  --color-warning-light: #2D2516;
+  --color-warning-foreground: #1A1918;
+  --color-warning-muted: #DDB05C;
+
+  /* === Destructive (Muted Red) === */
+  --color-destructive: #C45C5C;
+  --color-destructive-light: #2D1E1E;
+  --color-destructive-foreground: #F2F0ED;
+  --color-destructive-muted: #D88080;
+
+  /* === Info (Soft Teal) === */
+  --color-info: #5B9AAA;
+  --color-info-light: #1A2A30;
+  --color-info-foreground: #F2F0ED;
+  --color-info-muted: #7BB5C5;
+
+  /* === Purple (Soft Mauve) === */
+  --color-purple: #9B8AAB;
+  --color-purple-light: #252030;
+  --color-purple-foreground: #F2F0ED;
+  --color-purple-muted: #B5A5C5;
+
+  /* === Text Colors === */
+  --color-text-primary: #F2F0ED;
+  --color-text-secondary: #C9C5C0;
+  --color-text-muted: #9A958F;
+  --color-text-light: #6D6862;
 }
 
-/* Custom scrollbar */
+/* === Light Theme Override === */
+.light {
+  --color-primary: #C83A45;
+  --color-primary-hover: #B53340;
+  --color-primary-light: #FCF0F1;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-secondary: #F0EDE8;
+  --color-secondary-hover: #E5E2DC;
+  --color-secondary-foreground: #4A4643;
+
+  --color-muted: #F7F5F2;
+  --color-muted-foreground: #7A756E;
+
+  --color-accent: #F0EDE8;
+  --color-accent-foreground: #1A1918;
+
+  --color-background: #FAF9F7;
+  --color-foreground: #1A1918;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1A1918;
+
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1A1918;
+
+  --color-border: #E5E2DD;
+  --color-input: #E5E2DD;
+  --color-ring: #C83A45;
+
+  --color-success: #4A7C59;
+  --color-success-light: #EBF5EE;
+  --color-success-foreground: #FFFFFF;
+  --color-success-muted: #3D6A4A;
+
+  --color-warning: #B07530;
+  --color-warning-light: #FDF6ED;
+  --color-warning-foreground: #FFFFFF;
+  --color-warning-muted: #966328;
+
+  --color-destructive: #B54545;
+  --color-destructive-light: #FDF0F0;
+  --color-destructive-foreground: #FFFFFF;
+  --color-destructive-muted: #9A3A3A;
+
+  --color-info: #4A7C8C;
+  --color-info-light: #EDF5F7;
+  --color-info-foreground: #FFFFFF;
+  --color-info-muted: #3D6A78;
+
+  --color-purple: #7A6A8A;
+  --color-purple-light: #F5F2F8;
+  --color-purple-foreground: #FFFFFF;
+  --color-purple-muted: #685A78;
+
+  --color-text-primary: #1A1918;
+  --color-text-secondary: #5C5854;
+  --color-text-muted: #7A756E;
+  --color-text-light: #9A958F;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================
+   Custom Scrollbar
+   ============================================ */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background-color: #f3f4f6;
+  background-color: var(--color-muted);
 }
+
 ::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
+  background-color: var(--color-border);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #9ca3af;
+  background-color: var(--color-muted-foreground);
 }
+
+/* ============================================
+   Theme Transition
+   ============================================ */
+
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================
+   Custom Animations
+   ============================================ */
+
+/* Fade in up - for centered elements like scroll indicator */
+@keyframes fade-in-up-centered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-fade-in-up-centered {
+  animation: fade-in-up-centered 0.7s ease-out forwards;
+  opacity: 0;
+}
+
+/* Fade in up - general purpose */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* Fade in - simple opacity */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-out forwards;
+  opacity: 0;
+}
+
+/* Staggered delay utilities */
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
+.animation-delay-600 { animation-delay: 600ms; }
+.animation-delay-700 { animation-delay: 700ms; }
+.animation-delay-800 { animation-delay: 800ms; }

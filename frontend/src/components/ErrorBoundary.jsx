@@ -32,24 +32,24 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <Card className="max-w-lg w-full">
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+              <div className="mx-auto w-16 h-16 bg-destructive-light rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-destructive" />
               </div>
-              <CardTitle className="text-xl text-gray-900">
+              <CardTitle className="text-xl text-foreground">
                 Une erreur s'est produite
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-gray-600 text-center">
+              <p className="text-text-secondary text-center">
                 L'application a rencontré un problème inattendu.
                 Vos données sont sauvegardées localement.
               </p>
 
               {import.meta.env.DEV && this.state.error && (
-                <div className="bg-gray-100 rounded-lg p-3 text-sm font-mono text-gray-700 overflow-auto max-h-32">
+                <div className="bg-muted rounded-lg p-3 text-sm font-mono text-muted-foreground overflow-auto max-h-32">
                   {this.state.error.toString()}
                 </div>
               )}
@@ -71,7 +71,7 @@ class ErrorBoundary extends Component {
                 </Button>
               </div>
 
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-text-muted text-center">
                 Si le problème persiste, essayez de vider le cache du navigateur.
               </p>
             </CardContent>

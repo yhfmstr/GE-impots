@@ -52,11 +52,11 @@ export default function GuidePage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <FileText className="w-7 h-7 text-red-600" />
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <FileText className="w-7 h-7 text-primary" />
           Déclaration d'impôts {TAX_YEAR}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-text-secondary mt-1">
           Suivez ce guide rubrique par rubrique et importez vos documents
         </p>
       </div>

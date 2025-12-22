@@ -126,17 +126,17 @@ export default function DocumentUpload({
     <Card className="mb-6 overflow-hidden">
       <button
         onClick={() => setUploadOpen(!uploadOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between bg-info-light hover:bg-info-light/80 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Upload className="w-5 h-5 text-blue-600" />
-          <span className="font-medium text-gray-900">Télécharger un document pour cette page</span>
+          <Upload className="w-5 h-5 text-info" />
+          <span className="font-medium text-foreground">Télécharger un document pour cette page</span>
         </div>
-        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${uploadOpen ? 'rotate-90' : ''}`} />
+        <ChevronRight className={`w-5 h-5 text-text-light transition-transform ${uploadOpen ? 'rotate-90' : ''}`} />
       </button>
 
       {uploadOpen && (
-        <CardContent className="p-4 border-t border-gray-200 space-y-4">
+        <CardContent className="p-4 border-t border-border space-y-4">
           {/* Document type selector */}
           <div>
             <Label className="mb-2 block">Type de document:</Label>
@@ -157,7 +157,7 @@ export default function DocumentUpload({
           {/* Upload zone */}
           <div
             className={`border-2 border-dashed rounded-xl p-6 transition-colors ${
-              dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+              dragActive ? 'border-info bg-info-light' : 'border-border hover:border-muted-foreground'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -167,14 +167,14 @@ export default function DocumentUpload({
             <div className="text-center">
               {uploading ? (
                 <div className="flex flex-col items-center">
-                  <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-3" />
-                  <p className="text-gray-600">Analyse en cours...</p>
-                  <p className="text-sm text-gray-400">Extraction des données avec Claude AI</p>
+                  <Loader2 className="w-10 h-10 text-info animate-spin mb-3" />
+                  <p className="text-text-secondary">Analyse en cours...</p>
+                  <p className="text-sm text-text-light">Extraction des données avec Claude AI</p>
                 </div>
               ) : (
                 <>
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-700 mb-2">
+                  <Upload className="w-10 h-10 text-text-light mx-auto mb-3" />
+                  <p className="text-foreground mb-2">
                     Glissez votre <strong>{DOCUMENT_TYPE_NAMES[uploadDocType]}</strong> ici
                   </p>
                   <label className="cursor-pointer">
@@ -188,7 +188,7 @@ export default function DocumentUpload({
                       onChange={handleFileInput}
                     />
                   </label>
-                  <p className="text-xs text-gray-400 mt-3">JPG, PNG, PDF (max 10 MB)</p>
+                  <p className="text-xs text-text-light mt-3">JPG, PNG, PDF (max 10 MB)</p>
                 </>
               )}
             </div>

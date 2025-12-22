@@ -64,7 +64,7 @@ export default function SuggestionIndicator({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-secondary-foreground">
             Suggestion: {suggestedValueFormatted}
           </span>
           <Badge variant="outline" className={`text-xs ${confidenceStyle.bgClass} ${confidenceStyle.textClass}`}>
@@ -72,13 +72,13 @@ export default function SuggestionIndicator({
           </Badge>
         </div>
 
-        <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
           <FileText className="w-3 h-3" />
           <span className="truncate">{suggestion.source}</span>
         </div>
 
         {hasConflict && (
-          <div className="flex items-center gap-1 text-xs text-amber-600 mt-1">
+          <div className="flex items-center gap-1 text-xs text-warning mt-1">
             <AlertCircle className="w-3 h-3" />
             <span>Remplace: {typeof currentValue === 'number' ? formatCHF(currentValue) : currentValue}</span>
           </div>
@@ -89,7 +89,7 @@ export default function SuggestionIndicator({
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+          className="h-7 w-7 p-0 text-success hover:text-success-muted hover:bg-success-light"
           onClick={() => onAccept?.(suggestion)}
           title="Accepter"
         >
@@ -98,7 +98,7 @@ export default function SuggestionIndicator({
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="h-7 w-7 p-0 text-destructive hover:text-destructive-muted hover:bg-destructive-light"
           onClick={() => onReject?.(suggestion)}
           title="Rejeter"
         >
@@ -120,11 +120,11 @@ function SuggestionPopover({ suggestion, currentValue, onAccept, onReject, onClo
     : suggestion.value;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-3 w-64" onClick={(e) => e.stopPropagation()}>
+    <div className="bg-card rounded-lg shadow-lg border border-border p-3 w-64" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5">
           <Sparkles className={`w-4 h-4 ${confidenceStyle.textClass}`} />
-          <span className="text-sm font-medium text-gray-900">Suggestion</span>
+          <span className="text-sm font-medium text-foreground">Suggestion</span>
         </div>
         <Badge variant="outline" className={`text-xs ${confidenceStyle.bgClass} ${confidenceStyle.textClass}`}>
           {confidenceStyle.label}
@@ -132,34 +132,34 @@ function SuggestionPopover({ suggestion, currentValue, onAccept, onReject, onClo
       </div>
 
       <div className="space-y-2 mb-3">
-        <div className="bg-gray-50 rounded p-2">
-          <p className="text-xs text-gray-500">Valeur suggérée</p>
-          <p className="text-sm font-semibold text-gray-900">{suggestedValueFormatted}</p>
+        <div className="bg-muted rounded p-2">
+          <p className="text-xs text-muted-foreground">Valeur suggérée</p>
+          <p className="text-sm font-semibold text-foreground">{suggestedValueFormatted}</p>
         </div>
 
         {suggestion.source && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <FileText className="w-3 h-3" />
             <span className="truncate">{suggestion.source}</span>
           </div>
         )}
 
         {hasConflict && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 rounded p-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-warning bg-warning-light rounded p-1.5">
             <AlertCircle className="w-3 h-3 flex-shrink-0" />
             <span>Remplacera: {typeof currentValue === 'number' ? formatCHF(currentValue) : currentValue}</span>
           </div>
         )}
 
         {suggestion.explanation && (
-          <p className="text-xs text-gray-500 italic">{suggestion.explanation}</p>
+          <p className="text-xs text-muted-foreground italic">{suggestion.explanation}</p>
         )}
       </div>
 
       <div className="flex gap-2">
         <Button
           size="sm"
-          className="flex-1 h-8 bg-green-600 hover:bg-green-700"
+          className="flex-1 h-8 bg-success hover:bg-success-muted text-success-foreground"
           onClick={() => {
             onAccept?.(suggestion);
             onClose?.();
@@ -171,7 +171,7 @@ function SuggestionPopover({ suggestion, currentValue, onAccept, onReject, onClo
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 h-8 text-red-600 border-red-200 hover:bg-red-50"
+          className="flex-1 h-8 text-destructive border-destructive-light hover:bg-destructive-light"
           onClick={() => {
             onReject?.(suggestion);
             onClose?.();
@@ -194,7 +194,7 @@ export function SuggestionBadge({ count, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm font-medium"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-info-light text-info hover:bg-info/20 transition-colors text-sm font-medium"
     >
       <Sparkles className="w-4 h-4" />
       {count} suggestion{count > 1 ? 's' : ''}

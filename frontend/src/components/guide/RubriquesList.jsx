@@ -54,32 +54,32 @@ export default function RubriquesList({ selectedPage, userData }) {
 
   return (
     <Card className="mb-6 overflow-hidden">
-      <CardHeader className="bg-gray-50 border-b border-gray-200">
+      <CardHeader className="bg-muted border-b border-border">
         <CardTitle>Rubriques à remplir</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border">
           {selectedPage.fields.map((field) => {
             const value = getFieldValue(field, userData);
             const isOverLimit = field.limit && value > field.limit;
 
             return (
-              <div key={field.code} className="p-4 hover:bg-gray-50 transition-colors">
+              <div key={field.code} className="p-4 hover:bg-muted transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Badge variant="default">{field.code}</Badge>
-                      <span className="font-medium text-gray-900">{field.name}</span>
+                      <span className="font-medium text-foreground">{field.name}</span>
                     </div>
-                    <div className="mt-1 text-sm text-gray-500">
+                    <div className="mt-1 text-sm text-muted-foreground">
                       {field.calculated ? (
-                        <span className="text-blue-600">Calculé: {field.formula}</span>
+                        <span className="text-info">Calculé: {field.formula}</span>
                       ) : (
                         <span>Source: {field.source}</span>
                       )}
                     </div>
                     {isOverLimit && (
-                      <div className="mt-1 flex items-center gap-1 text-amber-600 text-sm">
+                      <div className="mt-1 flex items-center gap-1 text-warning text-sm">
                         <AlertCircle className="w-4 h-4" />
                         <span>Limite dépassée! Max: {field.limit.toLocaleString('fr-CH')} CHF</span>
                       </div>
@@ -88,7 +88,7 @@ export default function RubriquesList({ selectedPage, userData }) {
                   <div className="flex items-center gap-2">
                     {value !== null ? (
                       <>
-                        <span className={`font-mono text-lg ${isOverLimit ? 'text-amber-600' : 'text-gray-900'}`}>
+                        <span className={`font-mono text-lg ${isOverLimit ? 'text-warning' : 'text-foreground'}`}>
                           CHF {value.toLocaleString('fr-CH')}
                         </span>
                         <Button
@@ -98,14 +98,14 @@ export default function RubriquesList({ selectedPage, userData }) {
                           title="Copier la valeur"
                         >
                           {copiedCode === field.code ? (
-                            <Check className="w-5 h-5 text-green-600" />
+                            <Check className="w-5 h-5 text-success" />
                           ) : (
-                            <Copy className="w-5 h-5 text-gray-400" />
+                            <Copy className="w-5 h-5 text-text-light" />
                           )}
                         </Button>
                       </>
                     ) : (
-                      <span className="text-gray-400 italic">Non renseigné</span>
+                      <span className="text-text-light italic">Non renseigné</span>
                     )}
                   </div>
                 </div>

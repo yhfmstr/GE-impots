@@ -332,16 +332,16 @@ export default function DocumentsPage() {
   };
 
   const getConfidenceColor = (confidence) => {
-    if (confidence >= 0.9) return 'text-green-600';
-    if (confidence >= 0.7) return 'text-yellow-600';
-    return 'text-red-600';
+    if (confidence >= 0.9) return 'text-success';
+    if (confidence >= 0.7) return 'text-warning';
+    return 'text-destructive';
   };
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Documents</h1>
+        <p className="text-text-secondary mt-1">
           Téléchargez vos justificatifs pour extraire automatiquement les données
         </p>
       </div>
@@ -351,10 +351,10 @@ export default function DocumentsPage() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Sparkles className={`w-5 h-5 ${autoDetect ? 'text-purple-600' : 'text-gray-400'}`} />
+              <Sparkles className={`w-5 h-5 ${autoDetect ? 'text-purple' : 'text-muted-foreground'}`} />
               <div>
                 <Label className="font-medium">Détection automatique</Label>
-                <p className="text-sm text-gray-500">L'IA identifie le type de document pour vous</p>
+                <p className="text-sm text-muted-foreground">L'IA identifie le type de document pour vous</p>
               </div>
             </div>
             <Button
@@ -389,7 +389,7 @@ export default function DocumentsPage() {
 
       {/* Upload Zone */}
       <Card className={`mb-6 border-2 border-dashed transition-colors ${
-        dragActive ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+        dragActive ? 'border-primary bg-primary-light' : 'border-border hover:border-muted-foreground'
       }`}>
         <CardContent
           className="p-8"
@@ -401,19 +401,19 @@ export default function DocumentsPage() {
           <div className="text-center">
             {(uploading || detecting) ? (
               <div className="flex flex-col items-center">
-                <Loader2 className="w-12 h-12 text-red-600 animate-spin mb-4" />
-                <p className="text-gray-600">
+                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                <p className="text-text-secondary">
                   {detecting ? 'Détection du type de document...' : 'Analyse du document en cours...'}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">Extraction des données avec Claude AI</p>
+                <p className="text-sm text-text-muted mt-1">Extraction des données avec Claude AI</p>
               </div>
             ) : (
               <>
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-900 mb-2">
+                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium text-foreground mb-2">
                   Glissez votre document ici
                 </p>
-                <p className="text-gray-500 mb-4">ou</p>
+                <p className="text-muted-foreground mb-4">ou</p>
                 <label className="cursor-pointer">
                   <Button asChild>
                     <span>Choisir un fichier</span>
@@ -425,7 +425,7 @@ export default function DocumentsPage() {
                     onChange={handleFileInput}
                   />
                 </label>
-                <p className="text-sm text-gray-400 mt-4">
+                <p className="text-sm text-text-muted mt-4">
                   Formats acceptés: JPG, PNG, GIF, WEBP, PDF (max 10 MB)
                 </p>
               </>
@@ -449,14 +449,14 @@ export default function DocumentsPage() {
 
       {/* Suggestion Success Notification */}
       {suggestionNotification && (
-        <Alert className="mb-6 border-green-200 bg-green-50">
-          <CheckCircle2 className="h-5 w-5 text-green-600" />
+        <Alert className="mb-6 border-success bg-success-light">
+          <CheckCircle2 className="h-5 w-5 text-success" />
           <AlertDescription className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-green-800">
+              <span className="text-success-muted">
                 <strong>{suggestionNotification.count} champ{suggestionNotification.count > 1 ? 's' : ''}</strong> extrait{suggestionNotification.count > 1 ? 's' : ''} de {suggestionNotification.fileName}
               </span>
-              <Badge variant="secondary" className="bg-green-100 text-green-700">
+              <Badge variant="success">
                 <Sparkles className="w-3 h-3 mr-1" />
                 À valider
               </Badge>
@@ -464,7 +464,7 @@ export default function DocumentsPage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-green-700 border-green-300 hover:bg-green-100"
+              className="text-success-muted border-success hover:bg-success-light"
               onClick={() => window.location.href = '/declaration'}
             >
               Voir les suggestions
@@ -478,10 +478,10 @@ export default function DocumentsPage() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Documents analysés</CardTitle>
-            <span className="text-sm text-gray-500">{extractions.length} document(s)</span>
+            <span className="text-sm text-muted-foreground">{extractions.length} document(s)</span>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {extractions.map((extraction) => {
                 const typeConfig = getTypeConfig(extraction.documentType);
                 const isExpanded = expandedExtraction === extraction.id;
@@ -494,17 +494,17 @@ export default function DocumentsPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          extraction.success ? 'bg-green-100' : 'bg-red-100'
+                          extraction.success ? 'bg-success-light' : 'bg-destructive-light'
                         }`}>
                           {extraction.success ? (
-                            <Check className="w-5 h-5 text-green-600" />
+                            <Check className="w-5 h-5 text-success" />
                           ) : (
-                            <AlertCircle className="w-5 h-5 text-red-600" />
+                            <AlertCircle className="w-5 h-5 text-destructive" />
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{extraction.documentName}</p>
-                          <p className="text-sm text-gray-500">{extraction.fileName}</p>
+                          <p className="font-medium text-foreground">{extraction.documentName}</p>
+                          <p className="text-sm text-muted-foreground">{extraction.fileName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -515,27 +515,27 @@ export default function DocumentsPage() {
                             e.stopPropagation();
                             confirmDelete(extraction);
                           }}
-                          className="text-gray-400 hover:text-red-600"
+                          className="text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-gray-400" />
+                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
                         )}
                       </div>
                     </div>
 
                     {isExpanded && extraction.success && (
                       <div className="mt-4 space-y-4">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-3">Données extraites</h4>
+                        <div className="bg-muted rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-secondary-foreground mb-3">Données extraites</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {typeConfig?.fields.map(field => (
-                              <div key={field.key} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
-                                <span className="text-sm text-gray-600">{field.label}</span>
-                                <span className="font-medium text-gray-900">
+                              <div key={field.key} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                                <span className="text-sm text-text-secondary">{field.label}</span>
+                                <span className="font-medium text-foreground">
                                   {formatValue(extraction.data[field.key], field.type)}
                                 </span>
                               </div>
@@ -558,7 +558,7 @@ export default function DocumentsPage() {
                                 <p className="text-sm mb-1"><strong>Autres montants:</strong> {extraction.data.additionalAmounts}</p>
                               )}
                               {extraction.data.period && (
-                                <p className="text-sm text-gray-600">Période: {extraction.data.period}</p>
+                                <p className="text-sm text-text-secondary">Période: {extraction.data.period}</p>
                               )}
                             </AlertDescription>
                           </Alert>
@@ -568,7 +568,7 @@ export default function DocumentsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => applyExtractedData(extraction.data)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-primary hover:text-primary-hover"
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
                           Réappliquer au questionnaire
@@ -618,7 +618,7 @@ export default function DocumentsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+              <Sparkles className="w-5 h-5 text-purple" />
               Confirmation du type de document
             </DialogTitle>
             <DialogDescription>
@@ -630,24 +630,24 @@ export default function DocumentsPage() {
 
           {detectionResult && (
             <div className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">Fichier:</p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Fichier:</p>
                 <p className="font-medium">{detectionResult.fileName}</p>
               </div>
 
               {detectionResult.success && (
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="p-3 bg-purple-light rounded-lg border border-purple">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-purple-600">Type détecté:</p>
-                      <p className="font-medium text-purple-900">{detectionResult.detectedTypeName}</p>
+                      <p className="text-sm text-purple">Type détecté:</p>
+                      <p className="font-medium text-purple-muted">{detectionResult.detectedTypeName}</p>
                     </div>
                     <div className={`text-sm font-medium ${getConfidenceColor(detectionResult.confidence)}`}>
                       {Math.round(detectionResult.confidence * 100)}% confiance
                     </div>
                   </div>
                   {detectionResult.reasoning && (
-                    <p className="text-sm text-purple-700 mt-2">{detectionResult.reasoning}</p>
+                    <p className="text-sm text-purple-muted mt-2">{detectionResult.reasoning}</p>
                   )}
                 </div>
               )}
@@ -709,7 +709,7 @@ export default function DocumentsPage() {
             </Alert>
           )}
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-text-secondary">
             Les données déjà appliquées au questionnaire ne seront pas affectées.
           </p>
 

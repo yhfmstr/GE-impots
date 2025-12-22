@@ -126,32 +126,33 @@ export const parseSwissNumber = (value) => {
 
 /**
  * Format confidence level as color class
+ * Uses semantic color classes from design system
  * @param {number} confidence - Confidence as decimal (0-1)
  * @returns {Object} Tailwind classes and label
  */
 export const formatConfidence = (confidence) => {
   if (confidence >= 0.8) {
     return {
-      bgClass: 'bg-green-100',
-      textClass: 'text-green-700',
-      borderClass: 'border-green-200',
+      bgClass: 'bg-success-light',
+      textClass: 'text-success-muted',
+      borderClass: 'border-success',
       label: 'Élevée',
       icon: 'check'
     };
   }
   if (confidence >= 0.6) {
     return {
-      bgClass: 'bg-yellow-100',
-      textClass: 'text-yellow-700',
-      borderClass: 'border-yellow-200',
+      bgClass: 'bg-warning-light',
+      textClass: 'text-warning-muted',
+      borderClass: 'border-warning',
       label: 'Moyenne',
       icon: 'alert'
     };
   }
   return {
-    bgClass: 'bg-red-100',
-    textClass: 'text-red-700',
-    borderClass: 'border-red-200',
+    bgClass: 'bg-destructive-light',
+    textClass: 'text-destructive-muted',
+    borderClass: 'border-destructive',
     label: 'Faible',
     icon: 'warning'
   };

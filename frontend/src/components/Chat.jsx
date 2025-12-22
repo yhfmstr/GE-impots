@@ -217,7 +217,7 @@ export default function Chat({ initialContext = [] }) {
   return (
     <Card className="flex flex-col h-[calc(100vh-12rem)]">
       {/* Header with history toggle */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -228,7 +228,7 @@ export default function Chat({ initialContext = [] }) {
             <History className="w-4 h-4" />
             <span className="hidden sm:inline">Historique</span>
           </Button>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             {conversations.length} conversation{conversations.length > 1 ? 's' : ''}
           </span>
         </div>
@@ -246,7 +246,7 @@ export default function Chat({ initialContext = [] }) {
       <div className="flex flex-1 overflow-hidden">
         {/* History sidebar */}
         {showHistory && (
-          <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto flex-shrink-0">
+          <div className="w-64 border-r border-border bg-muted overflow-y-auto flex-shrink-0">
             <div className="p-2 space-y-1">
               {conversations.map((conv) => (
                 <div
@@ -257,8 +257,8 @@ export default function Chat({ initialContext = [] }) {
                   onKeyDown={(e) => e.key === 'Enter' && switchConversation(conv.id)}
                   className={`w-full text-left p-2 rounded-lg text-sm transition-colors group cursor-pointer ${
                     conv.id === currentConversationId
-                      ? 'bg-red-100 text-red-900'
-                      : 'hover:bg-gray-100 text-gray-700'
+                      ? 'bg-primary-light text-primary'
+                      : 'hover:bg-secondary text-secondary-foreground'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -267,7 +267,7 @@ export default function Chat({ initialContext = [] }) {
                         <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="truncate font-medium">{conv.title}</span>
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {formatDate(conv.updatedAt)}
                       </div>
                     </div>
@@ -276,10 +276,10 @@ export default function Chat({ initialContext = [] }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && deleteConversation(conv.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive-light rounded transition-opacity cursor-pointer"
                       title="Supprimer"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </div>
                   </div>
                 </div>
@@ -296,33 +296,33 @@ export default function Chat({ initialContext = [] }) {
               className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-red-600" />
+                <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-primary" />
                 </div>
               )}
               <div
                 className={`max-w-[80%] p-3 rounded-2xl ${
                   msg.role === 'user'
-                    ? 'bg-red-600 text-white rounded-br-md'
-                    : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                    ? 'bg-primary text-primary-foreground rounded-br-md'
+                    : 'bg-secondary text-foreground rounded-bl-md'
                 }`}
               >
                 <ChatMarkdown variant={msg.role}>{msg.content}</ChatMarkdown>
               </div>
               {msg.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-gray-600" />
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-secondary-foreground" />
                 </div>
               )}
             </div>
           ))}
           {loading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-red-600" />
+              <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
+                <Bot className="w-4 h-4 text-primary" />
               </div>
-              <div className="bg-gray-100 p-3 rounded-2xl rounded-bl-md">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+              <div className="bg-secondary p-3 rounded-2xl rounded-bl-md">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
             </div>
           )}
@@ -331,7 +331,7 @@ export default function Chat({ initialContext = [] }) {
       </div>
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="p-4 border-t border-gray-200">
+      <form onSubmit={sendMessage} className="p-4 border-t border-border">
         <div className="flex gap-2">
           <Input
             type="text"

@@ -225,11 +225,11 @@ export default function Questionnaire({ onComplete }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="bg-card rounded-xl shadow-sm border border-border">
       {/* Progress */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-600">Section {currentSection + 1} sur {SECTIONS.length}</span>
+          <span className="text-sm text-text-secondary">Section {currentSection + 1} sur {SECTIONS.length}</span>
           <div className="flex items-center gap-3">
             {pendingSuggestions.length > 0 && (
               <SuggestionBadge
@@ -237,19 +237,19 @@ export default function Questionnaire({ onComplete }) {
                 onClick={() => setShowAutoFillPanel(!showAutoFillPanel)}
               />
             )}
-            <span className="text-sm font-medium text-gray-900">{section.title}</span>
+            <span className="text-sm font-medium text-foreground">{section.title}</span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-secondary rounded-full h-2">
           <div
-            className="bg-red-600 h-2 rounded-full transition-all"
+            className="bg-primary h-2 rounded-full transition-all"
             style={{ width: `${((currentSection + 1) / SECTIONS.length) * 100}%` }}
           />
         </div>
 
         {/* Section-specific suggestions indicator */}
         {sectionSuggestions.length > 0 && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
+          <div className="mt-2 flex items-center gap-2 text-sm text-info">
             <Sparkles className="w-4 h-4" />
             <span>{sectionSuggestions.length} suggestion{sectionSuggestions.length > 1 ? 's' : ''} pour cette section</span>
           </div>
@@ -258,7 +258,7 @@ export default function Questionnaire({ onComplete }) {
 
       {/* AutoFill Panel */}
       {showAutoFillPanel && (
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-border bg-muted">
           <AutoFillPanel
             suggestions={suggestions}
             onAccept={handleAcceptSuggestion}
@@ -279,9 +279,9 @@ export default function Questionnaire({ onComplete }) {
           return (
             <div key={field.name}>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-secondary-foreground">
                   {field.label}
-                  {field.max && <span className="text-gray-400 ml-2">(max {field.max.toLocaleString()} CHF)</span>}
+                  {field.max && <span className="text-text-light ml-2">(max {field.max.toLocaleString()} CHF)</span>}
                 </label>
                 {hasSuggestion && (
                   <SuggestionIndicator
@@ -309,8 +309,8 @@ export default function Questionnaire({ onComplete }) {
                   type="text"
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    hasSuggestion ? 'border-dashed border-blue-300 mt-2' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent ${
+                    hasSuggestion ? 'border-dashed border-info mt-2' : 'border-border'
                   }`}
                 />
               )}
@@ -321,8 +321,8 @@ export default function Questionnaire({ onComplete }) {
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, parseFloat(e.target.value) || 0)}
                   max={field.max}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    hasSuggestion ? 'border-dashed border-blue-300 mt-2' : 'border-gray-300'
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent ${
+                    hasSuggestion ? 'border-dashed border-info mt-2' : 'border-border'
                   }`}
                 />
               )}
@@ -331,7 +331,7 @@ export default function Questionnaire({ onComplete }) {
                 <select
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
                   <option value="">Sélectionner...</option>
                   {field.options.map((opt) => (
@@ -347,8 +347,8 @@ export default function Questionnaire({ onComplete }) {
                     onClick={() => handleChange(field.name, true)}
                     className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
                       formData[field.name] === true
-                        ? 'border-red-500 bg-red-50 text-red-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary bg-primary-light text-primary'
+                        : 'border-border hover:border-muted-foreground'
                     }`}
                   >
                     Oui
@@ -358,8 +358,8 @@ export default function Questionnaire({ onComplete }) {
                     onClick={() => handleChange(field.name, false)}
                     className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
                       formData[field.name] === false
-                        ? 'border-red-500 bg-red-50 text-red-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-primary bg-primary-light text-primary'
+                        : 'border-border hover:border-muted-foreground'
                     }`}
                   >
                     Non
@@ -372,11 +372,11 @@ export default function Questionnaire({ onComplete }) {
       </div>
 
       {/* Navigation */}
-      <div className="p-4 border-t border-gray-200 flex justify-between">
+      <div className="p-4 border-t border-border flex justify-between">
         <button
           onClick={prevSection}
           disabled={currentSection === 0}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 text-text-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-4 h-4" />
           Précédent
@@ -385,7 +385,7 @@ export default function Questionnaire({ onComplete }) {
         <button
           onClick={nextSection}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50"
         >
           {saving ? (
             <Save className="w-4 h-4 animate-pulse" />

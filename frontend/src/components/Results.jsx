@@ -195,7 +195,7 @@ export default function Results() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -219,12 +219,12 @@ export default function Results() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calculator className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-info-light rounded-lg flex items-center justify-center">
+                <Calculator className="w-5 h-5 text-info" />
               </div>
-              <span className="text-sm text-gray-500">Revenu imposable</span>
+              <span className="text-sm text-muted-foreground">Revenu imposable</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-foreground">
               CHF {taxEstimate.taxableIncome.toLocaleString()}
             </p>
           </CardContent>
@@ -233,12 +233,12 @@ export default function Results() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-success-light rounded-lg flex items-center justify-center">
+                <TrendingDown className="w-5 h-5 text-success" />
               </div>
-              <span className="text-sm text-gray-500">Déductions totales</span>
+              <span className="text-sm text-muted-foreground">Déductions totales</span>
             </div>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-success">
               CHF {taxEstimate.totalDeductions.toLocaleString()}
             </p>
           </CardContent>
@@ -247,12 +247,12 @@ export default function Results() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <span className="text-red-600 font-bold">%</span>
+              <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
+                <span className="text-primary font-bold">%</span>
               </div>
-              <span className="text-sm text-gray-500">Taux effectif</span>
+              <span className="text-sm text-muted-foreground">Taux effectif</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-foreground">
               {taxEstimate.effectiveRate}%
             </p>
           </CardContent>
@@ -266,26 +266,26 @@ export default function Results() {
           <CardDescription>Basée sur les informations fournies</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-100">
-            <div className="flex justify-between p-4 hover:bg-gray-50">
-              <span className="text-gray-600">ICC (Impôt cantonal)</span>
+          <div className="divide-y divide-border">
+            <div className="flex justify-between p-4 hover:bg-muted">
+              <span className="text-text-secondary">ICC (Impôt cantonal)</span>
               <span className="font-medium">CHF {taxEstimate.icc.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between p-4 hover:bg-gray-50">
-              <span className="text-gray-600">Centimes additionnels communaux</span>
+            <div className="flex justify-between p-4 hover:bg-muted">
+              <span className="text-text-secondary">Centimes additionnels communaux</span>
               <span className="font-medium">CHF {taxEstimate.centimesAdd.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between p-4 hover:bg-gray-50">
-              <span className="text-gray-600">IFD (Impôt fédéral direct)</span>
+            <div className="flex justify-between p-4 hover:bg-muted">
+              <span className="text-text-secondary">IFD (Impôt fédéral direct)</span>
               <span className="font-medium">CHF {taxEstimate.ifd.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between p-4 hover:bg-gray-50">
-              <span className="text-gray-600">Impôt sur la fortune</span>
+            <div className="flex justify-between p-4 hover:bg-muted">
+              <span className="text-text-secondary">Impôt sur la fortune</span>
               <span className="font-medium">CHF {taxEstimate.fortuneTax.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between p-4 bg-red-50">
-              <span className="font-semibold text-gray-900">Total estimé</span>
-              <span className="font-bold text-red-600 text-lg">
+            <div className="flex justify-between p-4 bg-primary-light">
+              <span className="font-semibold text-foreground">Total estimé</span>
+              <span className="font-bold text-primary text-lg">
                 CHF {taxEstimate.total.toLocaleString()}
               </span>
             </div>
@@ -343,30 +343,30 @@ export default function Results() {
         <Card>
           <button
             onClick={() => setShowArchives(!showArchives)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Archive className="w-5 h-5 text-gray-400" />
-              <span className="font-medium text-gray-900">Déclarations archivées</span>
-              <span className="text-sm text-gray-500">({archives.length})</span>
+              <Archive className="w-5 h-5 text-muted-foreground" />
+              <span className="font-medium text-foreground">Déclarations archivées</span>
+              <span className="text-sm text-muted-foreground">({archives.length})</span>
             </div>
             {showArchives ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
           {showArchives && (
-            <div className="border-t border-gray-200 divide-y divide-gray-100">
+            <div className="border-t border-border divide-y divide-border">
               {archives.map((archive, index) => (
-                <div key={archive.id} className="p-4 hover:bg-gray-50">
+                <div key={archive.id} className="p-4 hover:bg-muted">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         Déclaration #{archives.length - index}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Archivée le {new Date(archive.date).toLocaleDateString('fr-CH', {
                           day: 'numeric',
                           month: 'long',
@@ -376,7 +376,7 @@ export default function Results() {
                         })}
                       </p>
                       {archive.data.grossSalary && (
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm text-text-muted mt-1">
                           Revenu: CHF {archive.data.grossSalary.toLocaleString('fr-CH')}
                         </p>
                       )}
@@ -393,7 +393,7 @@ export default function Results() {
                         variant="ghost"
                         size="icon"
                         onClick={() => deleteArchive(archive.id)}
-                        className="text-gray-400 hover:text-red-600"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -407,10 +407,10 @@ export default function Results() {
       )}
 
       {/* Reset Button */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-4 border-t border-border">
         <Button
           variant="ghost"
-          className="w-full text-gray-600 hover:text-red-600"
+          className="w-full text-text-secondary hover:text-destructive"
           onClick={() => setShowResetModal(true)}
         >
           <RotateCcw className="w-4 h-4" />
@@ -436,7 +436,7 @@ export default function Results() {
             </AlertDescription>
           </Alert>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-text-secondary">
             <p>Cette action va:</p>
             <ul className="mt-2 space-y-1">
               <li>• Archiver votre déclaration actuelle</li>

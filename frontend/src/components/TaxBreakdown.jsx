@@ -21,44 +21,44 @@ import { formatCHF, formatPercent } from '@/lib/formatting';
 const CATEGORY_CONFIG = {
   income: {
     icon: Plus,
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-info-light',
+    borderColor: 'border-info',
+    iconColor: 'text-info',
     label: 'Revenu'
   },
   deduction: {
     icon: Minus,
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-success-light',
+    borderColor: 'border-success',
+    iconColor: 'text-success',
     label: 'Déduction'
   },
   subtotal: {
     icon: Equal,
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-300',
-    iconColor: 'text-gray-600',
+    bgColor: 'bg-muted',
+    borderColor: 'border-border',
+    iconColor: 'text-text-secondary',
     label: 'Sous-total'
   },
   tax: {
     icon: Calculator,
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    iconColor: 'text-red-600',
+    bgColor: 'bg-primary-light',
+    borderColor: 'border-primary',
+    iconColor: 'text-primary',
     label: 'Impôt'
   },
   wealth: {
     icon: Info,
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    iconColor: 'text-purple-600',
+    bgColor: 'bg-purple-light',
+    borderColor: 'border-purple',
+    iconColor: 'text-purple',
     label: 'Fortune'
   },
   total: {
     icon: CheckCircle,
-    bgColor: 'bg-red-100',
-    borderColor: 'border-red-300',
-    iconColor: 'text-red-700',
+    bgColor: 'bg-primary-light',
+    borderColor: 'border-primary',
+    iconColor: 'text-primary',
     label: 'Total'
   }
 };
@@ -71,12 +71,12 @@ function CalculationStep({ step, isExpanded, onToggle }) {
   const IconComponent = config.icon;
 
   return (
-    <div className={`border-b last:border-b-0 ${step.isFinal ? 'border-red-200' : 'border-gray-100'}`}>
+    <div className={`border-b last:border-b-0 ${step.isFinal ? 'border-primary' : 'border-border'}`}>
       {/* Header - always visible */}
       <button
         onClick={onToggle}
-        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-          step.isFinal ? 'bg-red-50 hover:bg-red-100' : ''
+        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-muted transition-colors ${
+          step.isFinal ? 'bg-primary-light hover:bg-primary-light/80' : ''
         }`}
         aria-expanded={isExpanded}
       >
@@ -85,27 +85,27 @@ function CalculationStep({ step, isExpanded, onToggle }) {
             <IconComponent className={`w-4 h-4 ${config.iconColor}`} />
           </div>
           <div className="text-left">
-            <p className={`font-medium ${step.isFinal ? 'text-red-700' : 'text-gray-900'}`}>
+            <p className={`font-medium ${step.isFinal ? 'text-primary' : 'text-foreground'}`}>
               {step.title}
             </p>
             {step.legalRef && (
-              <p className="text-xs text-gray-500">{step.legalRef}</p>
+              <p className="text-xs text-muted-foreground">{step.legalRef}</p>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span className={`font-semibold ${
-            step.category === 'deduction' ? 'text-green-600' :
-            step.isFinal ? 'text-red-700 text-lg' :
-            'text-gray-900'
+            step.category === 'deduction' ? 'text-success' :
+            step.isFinal ? 'text-primary text-lg' :
+            'text-foreground'
           }`}>
             {step.category === 'deduction' ? '−' : ''}{formatCHF(step.result)}
           </span>
           {isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+            <ChevronDown className="w-5 h-5 text-text-light" />
           ) : (
-            <ChevronRight className="w-5 h-5 text-gray-400" />
+            <ChevronRight className="w-5 h-5 text-text-light" />
           )}
         </div>
       </button>
@@ -115,22 +115,22 @@ function CalculationStep({ step, isExpanded, onToggle }) {
         <div className={`px-4 pb-4 ${config.bgColor} border-t ${config.borderColor}`}>
           <div className="pt-3 space-y-3">
             {/* Description */}
-            <p className="text-sm text-gray-600">{step.description}</p>
+            <p className="text-sm text-text-secondary">{step.description}</p>
 
             {/* Formula */}
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 mb-1">Formule</p>
-              <p className="font-mono text-sm text-gray-800">{step.formula}</p>
+            <div className="bg-card rounded-lg p-3 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Formule</p>
+              <p className="font-mono text-sm text-foreground">{step.formula}</p>
             </div>
 
             {/* Inputs breakdown */}
             {step.inputs && step.inputs.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs text-gray-500">Détail du calcul</p>
+                <p className="text-xs text-muted-foreground">Détail du calcul</p>
                 {step.inputs.map((input, idx) => (
-                  <div key={idx} className="flex justify-between text-sm py-1 px-2 rounded bg-white">
-                    <span className="text-gray-600">{input.label}</span>
-                    <span className={`font-medium ${input.isNegative ? 'text-red-600' : 'text-gray-900'}`}>
+                  <div key={idx} className="flex justify-between text-sm py-1 px-2 rounded bg-card">
+                    <span className="text-text-secondary">{input.label}</span>
+                    <span className={`font-medium ${input.isNegative ? 'text-destructive' : 'text-foreground'}`}>
                       {input.isNegative ? '−' : ''}
                       {input.isPercent
                         ? formatPercent(input.value)
@@ -144,7 +144,7 @@ function CalculationStep({ step, isExpanded, onToggle }) {
 
             {/* Limit warning */}
             {step.limit && step.limit.exceeded && (
-              <div className="flex items-start gap-2 text-sm bg-amber-50 text-amber-700 p-2 rounded-lg">
+              <div className="flex items-start gap-2 text-sm bg-warning-light text-warning-muted p-2 rounded-lg">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>
                   Plafond atteint: maximum {formatCHF(step.limit.max)} appliqué
@@ -154,9 +154,9 @@ function CalculationStep({ step, isExpanded, onToggle }) {
 
             {/* Bracket info for ICC */}
             {step.bracket && (
-              <div className="text-sm bg-white p-2 rounded border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Tranche d'imposition</p>
-                <p className="text-gray-700">
+              <div className="text-sm bg-card p-2 rounded border border-border">
+                <p className="text-xs text-muted-foreground mb-1">Tranche d'imposition</p>
+                <p className="text-secondary-foreground">
                   De {formatCHF(step.bracket.min)} à {formatCHF(step.bracket.max)} : {formatPercent(step.bracket.rate)}
                 </p>
               </div>
@@ -164,7 +164,7 @@ function CalculationStep({ step, isExpanded, onToggle }) {
 
             {/* Note */}
             {step.note && (
-              <p className="text-xs text-gray-500 italic flex items-start gap-1">
+              <p className="text-xs text-muted-foreground italic flex items-start gap-1">
                 <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                 {step.note}
               </p>
@@ -176,7 +176,7 @@ function CalculationStep({ step, isExpanded, onToggle }) {
                 href={step.legalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                className="inline-flex items-center gap-1 text-sm text-info hover:text-info-muted hover:underline"
               >
                 Voir le texte de loi
                 <ExternalLink className="w-3 h-3" />
@@ -230,19 +230,19 @@ export default function TaxBreakdown({ steps, defaultExpanded = false }) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-gray-500" />
+            <Calculator className="w-5 h-5 text-muted-foreground" />
             Détail du calcul
           </CardTitle>
           <div className="flex gap-2">
             <button
               onClick={showAll ? collapseAll : expandAll}
-              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              className="text-sm text-info hover:text-info-muted hover:underline"
             >
               {showAll ? 'Tout réduire' : 'Tout développer'}
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Cliquez sur chaque ligne pour voir le détail et les références légales
         </p>
       </CardHeader>
@@ -267,7 +267,7 @@ export default function TaxBreakdown({ steps, defaultExpanded = false }) {
         </div>
 
         {/* Steps list */}
-        <div className="border-t border-gray-200">
+        <div className="border-t border-border">
           {steps.map((step) => (
             <CalculationStep
               key={step.id}

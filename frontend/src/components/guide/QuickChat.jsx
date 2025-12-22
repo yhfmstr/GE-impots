@@ -36,17 +36,17 @@ export default function QuickChat({ selectedPage }) {
     <Card className="overflow-hidden">
       <button
         onClick={() => setChatOpen(!chatOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between bg-muted hover:bg-secondary transition-colors"
       >
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-red-600" />
-          <span className="font-medium text-gray-900">Poser une question sur cette page</span>
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <span className="font-medium text-foreground">Poser une question sur cette page</span>
         </div>
-        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${chatOpen ? 'rotate-90' : ''}`} />
+        <ChevronRight className={`w-5 h-5 text-text-light transition-transform ${chatOpen ? 'rotate-90' : ''}`} />
       </button>
 
       {chatOpen && (
-        <CardContent className="p-4 border-t border-gray-200">
+        <CardContent className="p-4 border-t border-border">
           <div className="flex gap-2 mb-4">
             <Input
               type="text"
@@ -64,7 +64,7 @@ export default function QuickChat({ selectedPage }) {
             </Button>
           </div>
           {chatResponse && (
-            <div className="p-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">
+            <div className="p-4 bg-muted rounded-lg max-h-64 overflow-y-auto">
               <Markdown>{chatResponse}</Markdown>
             </div>
           )}
