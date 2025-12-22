@@ -22,15 +22,22 @@ const calculateForfait = (gross, avs, lpp, type) => {
  */
 const getFieldValue = (field, userData) => {
   if (field.calculated) {
-    if (field.code === '31.50') {
-      return calculateForfait(userData.grossSalary, userData.avsContributions, userData.lppContributions, 'ICC');
-    }
-    if (field.code === '31.20') {
-      return calculateForfait(userData.grossSalary, userData.avsContributions, userData.lppContributions, 'IFD');
+    // Only calculate if we have the required base data
+    if (field.code === '31.50' || field.code === '31.20') {
+      if (!userData.grossSalary) return null; // Can't calculate without salary
+      const type = field.code === '31.50' ? 'ICC' : 'IFD';
+      const result = calculateForfait(
+        userData.grossSalary || 0,
+        userData.avsContributions || 0,
+        userData.lppContributions || 0,
+        type
+      );
+      return isNaN(result) ? null : result;
     }
     return null;
   }
-  return userData[field.dataKey] || null;
+  const value = userData[field.dataKey];
+  return value !== undefined && value !== null ? value : null;
 };
 
 /**

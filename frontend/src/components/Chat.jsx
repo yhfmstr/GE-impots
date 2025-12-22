@@ -249,10 +249,13 @@ export default function Chat({ initialContext = [] }) {
           <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto flex-shrink-0">
             <div className="p-2 space-y-1">
               {conversations.map((conv) => (
-                <button
+                <div
                   key={conv.id}
                   onClick={() => switchConversation(conv.id)}
-                  className={`w-full text-left p-2 rounded-lg text-sm transition-colors group ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && switchConversation(conv.id)}
+                  className={`w-full text-left p-2 rounded-lg text-sm transition-colors group cursor-pointer ${
                     conv.id === currentConversationId
                       ? 'bg-red-100 text-red-900'
                       : 'hover:bg-gray-100 text-gray-700'
@@ -268,15 +271,18 @@ export default function Chat({ initialContext = [] }) {
                         {formatDate(conv.updatedAt)}
                       </div>
                     </div>
-                    <button
+                    <div
                       onClick={(e) => deleteConversation(conv.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && deleteConversation(conv.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity cursor-pointer"
                       title="Supprimer"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                    </button>
+                    </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
