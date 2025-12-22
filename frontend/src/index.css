@@ -257,3 +257,46 @@ body {
 .animation-delay-600 { animation-delay: 600ms; }
 .animation-delay-700 { animation-delay: 700ms; }
 .animation-delay-800 { animation-delay: 800ms; }
+
+/* Gradient text effect */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #E85D6B 50%, var(--color-warning) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light .text-gradient {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #B53340 50%, var(--color-warning) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated gradient background */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Pulse glow effect for deadline */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214, 69, 80, 0.4); }
+  50% { box-shadow: 0 0 20px 5px rgba(214, 69, 80, 0.2); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Counter number styling */
+.counter-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

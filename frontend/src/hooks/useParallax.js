@@ -1,6 +1,71 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
+ * Animated counter hook - counts up to target value
+ * @param {number} target - Target number to count to
+ * @param {number} duration - Animation duration in ms
+ * @param {boolean} startOnView - Start animation when element is in view
+ * @returns {object} - { ref, count, isComplete }
+ */
+export function useAnimatedCounter(target, duration = 2000, startOnView = true) {
+  const [count, setCount] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const [hasStarted, setHasStarted] = useState(!startOnView);
+  const ref = useRef(null);
+
+  // Intersection observer for startOnView
+  useEffect(() => {
+    if (!startOnView || hasStarted) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [startOnView, hasStarted]);
+
+  // Animation logic
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const startTime = Date.now();
+    const startValue = 0;
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function (ease-out)
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentCount = Math.floor(startValue + (target - startValue) * easeOut);
+
+      setCount(currentCount);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(target);
+        setIsComplete(true);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [target, duration, hasStarted]);
+
+  return { ref, count, isComplete };
+}
+
+/**
  * Custom hook for parallax scroll effects
  * @param {number} speed - Parallax speed multiplier (0.1 = slow, 1 = normal scroll)
  * @param {string} direction - 'up' or 'down'

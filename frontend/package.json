@@ -30,6 +30,7 @@
     "file-type": "^16.5.4",
     "helmet": "^8.1.0",
     "isomorphic-dompurify": "^2.34.0",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
     "multer": "^2.0.2",
     "pdf-to-img": "^5.0.0",
