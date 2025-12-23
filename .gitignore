@@ -6,11 +6,22 @@
 **/*.pdf.extracted
 **/extractions/
 
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
 # Temporary files
 *.tmp
 *.temp
 *.bak
 *~
+nul
 
 # OS generated files
 .DS_Store
@@ -30,12 +41,34 @@ Thumbs.db
 # Logs
 *.log
 logs/
+npm-debug.log*
 
 # Sensitive configuration
-*.env
-*.env.local
+.env
+.env.local
+.env.production.local
+.env.development.local
 config.local.json
+
+# Keep example files
+!.env.example
 
 # Backup files
 *.backup
 *.old
+
+# Test artifacts
+test-results/
+playwright-report/
+.playwright/
+.playwright-mcp/
+coverage/
+*.lcov
+
+# Vercel
+.vercel
+
+# Package manager locks (keep only one)
+# package-lock.json  # Uncomment if using yarn/pnpm
+yarn.lock
+pnpm-lock.yaml
