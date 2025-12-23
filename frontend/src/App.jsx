@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
-import { AuthProvider } from './lib/auth';
+import AuthenticatedLayout from './components/AuthenticatedLayout';
+import { AuthProvider, useAuth } from './lib/auth';
 import { ProtectedRoute, PublicRoute, AdminRoute } from './components/auth/ProtectedRoute';
 import { ProfileFreshnessGuard } from './components/auth/ProfileFreshnessGuard';
 
 // Pages
 import Home from './pages/Home';
+import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
 import ResultsPage from './pages/ResultsPage';
@@ -37,8 +39,18 @@ const STANDALONE_ROUTES = ['/start', '/login', '/signup', '/forgot-password', '/
 
 function AppContent() {
   const location = useLocation();
+  const { isAuthenticated, loading } = useAuth();
   const isStandalone = STANDALONE_ROUTES.some(route => location.pathname.startsWith(route));
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Show nothing while loading auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   // Standalone routes (no layout)
   if (isStandalone) {
@@ -74,7 +86,7 @@ function AppContent() {
     );
   }
 
-  // Admin routes
+  // Admin routes - use their own admin layout
   if (isAdminRoute) {
     return (
       <Routes>
@@ -91,54 +103,54 @@ function AppContent() {
     );
   }
 
-  // Main app routes with Layout
+  // Authenticated users get the new sidebar layout
+  if (isAuthenticated) {
+    return (
+      <ProfileFreshnessGuard>
+        <AuthenticatedLayout>
+          <Routes>
+            {/* Dashboard for authenticated users */}
+            <Route path="/" element={<DashboardPage />} />
+
+            {/* Protected routes */}
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/declaration" element={<GuidePage />} />
+            <Route path="/guide" element={<Navigate to="/declaration" replace />} />
+            <Route path="/wizard" element={<WizardPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/results" element={<ResultsPage />} />
+
+            {/* Profile routes */}
+            <Route path="/profile/update" element={<ProfileUpdatePage />} />
+
+            {/* Catch-all redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthenticatedLayout>
+      </ProfileFreshnessGuard>
+    );
+  }
+
+  // Non-authenticated users get the original public layout
   return (
-    <ProfileFreshnessGuard>
-      <Layout>
-        <Routes>
-          {/* Public home page */}
-          <Route path="/" element={<Home />} />
+    <Layout>
+      <Routes>
+        {/* Public home page */}
+        <Route path="/" element={<Home />} />
 
-          {/* Protected routes */}
-          <Route path="/chat" element={
-            <ProtectedRoute>
-              <ChatPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/declaration" element={
-            <ProtectedRoute>
-              <GuidePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/guide" element={<Navigate to="/declaration" replace />} />
-          <Route path="/wizard" element={
-            <ProtectedRoute>
-              <WizardPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/documents" element={
-            <ProtectedRoute>
-              <DocumentsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/results" element={
-            <ProtectedRoute>
-              <ResultsPage />
-            </ProtectedRoute>
-          } />
+        {/* Redirect protected routes to login */}
+        <Route path="/chat" element={<Navigate to="/login" replace />} />
+        <Route path="/declaration" element={<Navigate to="/login" replace />} />
+        <Route path="/guide" element={<Navigate to="/login" replace />} />
+        <Route path="/wizard" element={<Navigate to="/login" replace />} />
+        <Route path="/documents" element={<Navigate to="/login" replace />} />
+        <Route path="/results" element={<Navigate to="/login" replace />} />
+        <Route path="/profile/update" element={<Navigate to="/login" replace />} />
 
-          {/* Profile routes */}
-          <Route path="/profile/update" element={
-            <ProtectedRoute>
-              <ProfileUpdatePage />
-            </ProtectedRoute>
-          } />
-
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </ProfileFreshnessGuard>
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
   );
 }
 
