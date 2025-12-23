@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { useChat } from '@/lib/chatContext';
 import { loadSecure, STORAGE_KEYS } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ function getDaysUntilDeadline() {
 
 export default function DashboardPage() {
   const { profile } = useAuth();
+  const { openChat } = useChat();
 
   // Load declaration data from storage
   const taxData = loadSecure(STORAGE_KEYS.TAX_DATA) || {};
@@ -103,7 +105,7 @@ export default function DashboardPage() {
       title: 'Assistant fiscal',
       description: 'Poser une question',
       icon: MessageSquare,
-      href: '/chat',
+      onClick: openChat,
       variant: 'outline',
     },
   ];
@@ -189,27 +191,34 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => (
-            <Card
-              key={action.href}
-              className={`group hover:border-primary/50 transition-colors ${action.highlight ? 'border-primary/30 bg-primary/5' : ''}`}
-            >
-              <Link to={action.href} className="block">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <action.icon className={`h-5 w-5 ${action.highlight ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-base">{action.title}</CardTitle>
-                  <CardDescription className="text-sm mt-1">
-                    {action.description}
-                  </CardDescription>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
+          {quickActions.map((action) => {
+            const CardWrapper = action.href ? Link : 'button';
+            const wrapperProps = action.href
+              ? { to: action.href }
+              : { onClick: action.onClick, type: 'button' };
+
+            return (
+              <Card
+                key={action.title}
+                className={`group hover:border-primary/50 transition-colors ${action.highlight ? 'border-primary/30 bg-primary/5' : ''}`}
+              >
+                <CardWrapper {...wrapperProps} className="block w-full text-left">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <action.icon className={`h-5 w-5 ${action.highlight ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardTitle className="text-base">{action.title}</CardTitle>
+                    <CardDescription className="text-sm mt-1">
+                      {action.description}
+                    </CardDescription>
+                  </CardContent>
+                </CardWrapper>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -286,11 +295,9 @@ export default function DashboardPage() {
           <CardTitle className="text-base">Besoin d'aide?</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/chat">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Poser une question
-            </Link>
+          <Button variant="outline" size="sm" onClick={openChat}>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Poser une question
           </Button>
           <p className="text-sm text-muted-foreground self-center">
             Notre assistant fiscal est disponible 24/7 pour répondre à vos questions.

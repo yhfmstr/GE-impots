@@ -9,7 +9,6 @@ import { ProfileFreshnessGuard } from './components/auth/ProfileFreshnessGuard';
 // Pages
 import Home from './pages/Home';
 import DashboardPage from './pages/DashboardPage';
-import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
 import ResultsPage from './pages/ResultsPage';
 import GuidePage from './pages/GuidePage';
@@ -113,7 +112,6 @@ function AppContent() {
             <Route path="/" element={<DashboardPage />} />
 
             {/* Protected routes */}
-            <Route path="/chat" element={<ChatPage />} />
             <Route path="/declaration" element={<GuidePage />} />
             <Route path="/guide" element={<Navigate to="/declaration" replace />} />
             <Route path="/wizard" element={<WizardPage />} />
@@ -139,7 +137,6 @@ function AppContent() {
         <Route path="/" element={<Home />} />
 
         {/* Redirect protected routes to login */}
-        <Route path="/chat" element={<Navigate to="/login" replace />} />
         <Route path="/declaration" element={<Navigate to="/login" replace />} />
         <Route path="/guide" element={<Navigate to="/login" replace />} />
         <Route path="/wizard" element={<Navigate to="/login" replace />} />

@@ -14,12 +14,13 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { AppSidebar } from '@/components/app-sidebar';
+import ChatWidget from '@/components/ChatWidget';
+import { ChatProvider } from '@/lib/chatContext';
 import { useAuth } from '@/lib/auth';
 
 // Map routes to breadcrumb labels
 const routeLabels = {
   '/': 'Accueil',
-  '/chat': 'Assistant IA',
   '/declaration': 'Déclaration',
   '/documents': 'Documents',
   '/results': 'Résultats',
@@ -59,51 +60,54 @@ export function AuthenticatedLayout({ children }) {
   const currentPageTitle = routeLabels[location.pathname] || 'Page';
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {/* Header with sidebar trigger and breadcrumbs */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink asChild>
-                  <Link to="/">Accueil</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              {breadcrumbs.length > 0 && location.pathname !== '/' && (
-                <>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  {breadcrumbs.map((crumb, index) => (
-                    <BreadcrumbItem key={crumb.path}>
-                      {index === breadcrumbs.length - 1 ? (
-                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      ) : (
-                        <>
-                          <BreadcrumbLink asChild>
-                            <Link to={crumb.path}>{crumb.label}</Link>
-                          </BreadcrumbLink>
-                          <BreadcrumbSeparator className="hidden md:block" />
-                        </>
-                      )}
-                    </BreadcrumbItem>
-                  ))}
-                </>
-              )}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
+    <ChatProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          {/* Header with sidebar trigger and breadcrumbs */}
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink asChild>
+                    <Link to="/">Accueil</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                {breadcrumbs.length > 0 && location.pathname !== '/' && (
+                  <>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    {breadcrumbs.map((crumb, index) => (
+                      <BreadcrumbItem key={crumb.path}>
+                        {index === breadcrumbs.length - 1 ? (
+                          <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                        ) : (
+                          <>
+                            <BreadcrumbLink asChild>
+                              <Link to={crumb.path}>{crumb.label}</Link>
+                            </BreadcrumbLink>
+                            <BreadcrumbSeparator className="hidden md:block" />
+                          </>
+                        )}
+                      </BreadcrumbItem>
+                    ))}
+                  </>
+                )}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </header>
 
-        {/* Main content area */}
-        <div className="flex flex-1 flex-col gap-4 overflow-auto isolate">
-          <div className="flex-1 overflow-hidden">
-            {children}
+          {/* Main content area */}
+          <div className="flex flex-1 flex-col gap-4 overflow-auto isolate">
+            <div className="flex-1 overflow-hidden">
+              {children}
+            </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+        <ChatWidget />
+      </SidebarProvider>
+    </ChatProvider>
   );
 }
 

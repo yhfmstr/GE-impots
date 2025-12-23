@@ -1,44 +1,64 @@
-import 'dotenv/config';
+/**
+ * GE-impots API Server
+ *
+ * Express server providing:
+ * - Tax assistant AI chat
+ * - Document extraction with Claude Vision
+ * - Security middleware (CORS, CSRF, rate limiting)
+ * - Structured logging
+ */
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { readFileSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-// Middleware imports
+// Configuration & logging
+import { config, validateEnvironment } from './config/env.js';
+import { createLogger, requestLogger, logError } from './config/logger.js';
+
+// Middleware
 import { apiLimiter, chatLimiter, extractionLimiter } from './middleware/rateLimiter.js';
-import { validateBody, chatSchema, documentExtractSchema, documentAutoDetectSchema } from './middleware/validation.js';
+import { validateBody, chatSchema, documentExtractSchema } from './middleware/validation.js';
 import { upload, validateUploadedFile, uploadDir } from './middleware/upload.js';
+import { csrfProtection, csrfTokenEndpoint } from './middleware/csrf.js';
+
+// Services
 import { extractFromDocument, getDocumentTypes, detectDocumentType } from './services/documentExtractor.js';
-import { getClient } from './services/anthropicClient.js';
+import { getClient, getModel } from './services/anthropicClient.js';
+
+// Validate environment at startup
+try {
+  validateEnvironment();
+} catch (error) {
+  console.error('\n' + error.message + '\n');
+  process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Create loggers
+const log = createLogger('Server');
+const chatLog = createLogger('Chat');
+const docLog = createLogger('Documents');
+const securityLog = createLogger('Security');
+
 // Get shared Claude client
 const client = getClient();
 
-// Simple logger for production
-const log = {
-  info: (context, message) => {
-    console.log(`[${new Date().toISOString()}] [INFO] ${context}: ${message}`);
-  },
-  error: (context, error) => {
-    console.error(`[${new Date().toISOString()}] [ERROR] ${context}:`, {
-      message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
-    });
-  },
-  warn: (context, message) => {
-    console.warn(`[${new Date().toISOString()}] [WARN] ${context}: ${message}`);
-  }
-};
+// Knowledge paths
+const AGENTS_PATH = join(__dirname, '../../.claude/plugins/ge-impots-expert/agents');
+const KNOWLEDGE_PATH = join(__dirname, '../../2024/knowledge');
 
-// File cleanup job - removes files older than 1 hour
-const FILE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour in milliseconds
-const CLEANUP_INTERVAL_MS = 15 * 60 * 1000; // Run every 15 minutes
+function loadFile(path) {
+  return existsSync(path) ? readFileSync(path, 'utf-8') : '';
+}
 
+// File cleanup job
 function cleanupOldFiles() {
   try {
     const uploadPath = join(__dirname, '../../2024/user-uploads');
@@ -49,105 +69,31 @@ function cleanupOldFiles() {
     let deletedCount = 0;
 
     for (const file of files) {
-      // Skip hidden files and directories
       if (file.startsWith('.')) continue;
 
       const filePath = join(uploadPath, file);
       try {
         const stats = statSync(filePath);
-        if (stats.isFile() && (now - stats.mtimeMs) > FILE_MAX_AGE_MS) {
+        if (stats.isFile() && (now - stats.mtimeMs) > config.fileMaxAgeMs) {
           unlinkSync(filePath);
           deletedCount++;
         }
       } catch (err) {
-        log.warn('Cleanup', `Could not process file ${file}: ${err.message}`);
+        log.warn({ file, error: err.message }, 'Could not process file during cleanup');
       }
     }
 
     if (deletedCount > 0) {
-      log.info('Cleanup', `Removed ${deletedCount} old file(s) from uploads`);
+      log.info({ deletedCount }, 'Cleaned up old upload files');
     }
   } catch (error) {
-    log.error('Cleanup', error);
+    logError(error, 'Cleanup');
   }
 }
 
 // Start cleanup job
-setInterval(cleanupOldFiles, CLEANUP_INTERVAL_MS);
-// Run once at startup after a short delay
+setInterval(cleanupOldFiles, config.fileCleanupIntervalMs);
 setTimeout(cleanupOldFiles, 5000);
-
-// Knowledge paths
-const AGENTS_PATH = join(__dirname, '../../.claude/plugins/ge-impots-expert/agents');
-const KNOWLEDGE_PATH = join(__dirname, '../../2024/knowledge');
-
-function loadFile(path) {
-  return existsSync(path) ? readFileSync(path, 'utf-8') : '';
-}
-
-const app = express();
-
-// CORS configuration - restrict to specific origins
-const frontendUrls = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map(u => u.trim());
-const allowedOrigins = [
-  ...frontendUrls,
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
-// Security headers with helmet
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://api.anthropic.com"],
-      fontSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false, // Allow embedding for development
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  }
-}));
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // In production, always require origin
-    if (!origin) {
-      if (process.env.NODE_ENV === 'production') {
-        return callback(new Error('Origin header required'));
-      }
-      // In development, only allow localhost without origin (e.g., curl for testing)
-      log.warn('CORS', 'Request without origin header in development');
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-app.use(express.json({ limit: '1mb' })); // Limit JSON body size
-
-// Apply general rate limiter to all API routes
-app.use('/api/', apiLimiter);
-
-// Health check endpoint (no rate limit)
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Load all knowledge files for the unified assistant
 function loadAllKnowledge() {
@@ -173,16 +119,101 @@ function loadAllKnowledge() {
   return knowledge;
 }
 
-// Pre-load knowledge at startup for better performance
+// Pre-load knowledge at startup
 const unifiedAgentPrompt = loadFile(join(AGENTS_PATH, 'unified-assistant.md'));
 const allKnowledge = loadAllKnowledge();
 
-// Chat endpoint with validation and stricter rate limiting
+log.info('Knowledge base loaded successfully');
+
+// Create Express app
+const app = express();
+
+// Trust proxy for production (Vercel, etc.)
+if (config.isProduction) {
+  app.set('trust proxy', 1);
+}
+
+// CORS configuration
+const allowedOrigins = [
+  ...config.frontendUrls,
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "https://api.anthropic.com", ...config.frontendUrls],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// CORS
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) {
+      if (config.isProduction) {
+        securityLog.warn('Request without origin header in production');
+        return callback(new Error('Origin header required'));
+      }
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    securityLog.warn({ origin }, 'Blocked request from unauthorized origin');
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+}));
+
+// Body parsing
+app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
+
+// Request logging
+app.use('/api/', requestLogger);
+
+// Rate limiting
+app.use('/api/', apiLimiter);
+
+// CSRF protection for state-changing operations
+app.use('/api/', csrfProtection);
+
+// Health check endpoint (no rate limit, no CSRF)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// CSRF token endpoint
+app.get('/api/csrf-token', csrfTokenEndpoint);
+
+// Chat endpoint
 app.post('/api/chat', chatLimiter, validateBody(chatSchema), async (req, res) => {
   const { message, context } = req.body;
 
   try {
-    // Always use the unified assistant with all knowledge
     const systemPrompt = `${unifiedAgentPrompt}\n\n# BASE DE CONNAISSANCES FISCALES 2024\n${allKnowledge}`;
 
     const messages = [
@@ -190,16 +221,19 @@ app.post('/api/chat', chatLimiter, validateBody(chatSchema), async (req, res) =>
       { role: 'user', content: message }
     ];
 
+    chatLog.info({ messageLength: message.length, contextLength: context.length }, 'Processing chat request');
+
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: getModel(),
       max_tokens: 4096,
       system: systemPrompt,
       messages
     });
 
+    chatLog.info({ usage: response.usage }, 'Chat response generated');
     res.json({ content: response.content[0].text, usage: response.usage });
   } catch (error) {
-    log.error('Chat API', error);
+    logError(error, 'Chat');
     res.status(500).json({ error: 'Erreur lors de la communication avec l\'assistant.' });
   }
 });
@@ -208,7 +242,7 @@ app.post('/api/chat', chatLimiter, validateBody(chatSchema), async (req, res) =>
 app.get('/api/chat/agents', (req, res) => {
   res.json([
     { id: 'tax-coordinator', name: 'Coordinateur fiscal (général)' },
-    { id: 'getax-guide', name: '📋 Guide GeTax pas à pas' },
+    { id: 'getax-guide', name: 'Guide GeTax pas à pas' },
     { id: 'revenus-expert', name: 'Expert revenus' },
     { id: 'deductions-expert', name: 'Expert déductions' },
     { id: 'fortune-expert', name: 'Expert fortune' },
@@ -250,7 +284,7 @@ app.get('/api/documents/types', (req, res) => {
   res.json(getDocumentTypes());
 });
 
-// Auto-detect document type endpoint (new feature)
+// Auto-detect document type
 app.post('/api/documents/detect',
   extractionLimiter,
   upload.single('document'),
@@ -261,16 +295,18 @@ app.post('/api/documents/detect',
     }
 
     try {
+      docLog.info({ filename: req.file.originalname }, 'Detecting document type');
       const result = await detectDocumentType(req.file.path);
+      docLog.info({ detectedType: result.detectedType, confidence: result.confidence }, 'Document type detected');
       res.json(result);
     } catch (error) {
-      log.error('Document Detection', error);
+      logError(error, 'Documents');
       res.status(500).json({ error: 'Erreur lors de la détection du type de document.' });
     }
   }
 );
 
-// Document extraction with validation and rate limiting
+// Document extraction with validation
 app.post('/api/documents/extract',
   extractionLimiter,
   upload.single('document'),
@@ -284,16 +320,18 @@ app.post('/api/documents/extract',
     const { documentType } = req.body;
 
     try {
+      docLog.info({ filename: req.file.originalname, documentType }, 'Extracting document data');
       const result = await extractFromDocument(req.file.path, documentType);
+      docLog.info({ success: result.success, fields: Object.keys(result.data || {}).length }, 'Extraction complete');
       res.json(result);
     } catch (error) {
-      log.error('Document Extraction', error);
+      logError(error, 'Documents');
       res.status(500).json({ error: 'Erreur lors de l\'extraction du document.' });
     }
   }
 );
 
-// Extract with auto-detection (combines detect + extract)
+// Extract with auto-detection
 app.post('/api/documents/extract-auto',
   extractionLimiter,
   upload.single('document'),
@@ -304,7 +342,7 @@ app.post('/api/documents/extract-auto',
     }
 
     try {
-      // First detect the document type
+      docLog.info({ filename: req.file.originalname }, 'Auto-detecting document type');
       const detection = await detectDocumentType(req.file.path);
 
       if (!detection.success || !detection.detectedType) {
@@ -316,7 +354,6 @@ app.post('/api/documents/extract-auto',
         });
       }
 
-      // Return detected type for user confirmation
       res.json({
         success: true,
         requiresConfirmation: true,
@@ -326,7 +363,7 @@ app.post('/api/documents/extract-auto',
         fileName: req.file.originalname
       });
     } catch (error) {
-      log.error('Document Auto-Detect', error);
+      logError(error, 'Documents');
       res.status(500).json({ error: 'Erreur lors de la détection du type de document.' });
     }
   }
@@ -343,12 +380,12 @@ app.post('/api/documents/confirm-extract',
       return res.status(400).json({ error: 'Chemin du fichier requis.' });
     }
 
-    // SECURITY: Validate path is within upload directory to prevent path traversal
+    // Security: Validate path is within upload directory
     const normalizedUploadDir = resolve(uploadDir);
     const normalizedFilePath = resolve(filePath);
 
     if (!normalizedFilePath.startsWith(normalizedUploadDir)) {
-      log.warn('Security', `Path traversal attempt blocked: ${filePath}`);
+      securityLog.warn({ attemptedPath: filePath }, 'Path traversal attempt blocked');
       return res.status(400).json({ error: 'Chemin de fichier invalide.' });
     }
 
@@ -357,16 +394,17 @@ app.post('/api/documents/confirm-extract',
     }
 
     try {
+      docLog.info({ documentType }, 'Confirming extraction');
       const result = await extractFromDocument(normalizedFilePath, documentType);
       res.json(result);
     } catch (error) {
-      log.error('Document Confirm-Extract', error);
+      logError(error, 'Documents');
       res.status(500).json({ error: 'Erreur lors de l\'extraction du document.' });
     }
   }
 );
 
-// Get stored extractions (placeholder - data is stored client-side)
+// Get stored extractions (placeholder)
 app.get('/api/documents/extractions', (req, res) => {
   res.json([]);
 });
@@ -374,21 +412,29 @@ app.get('/api/documents/extractions', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({ error: 'Origin not allowed' });
+    return res.status(403).json({ error: 'Origin not allowed', code: 'CORS_ERROR' });
   }
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'Fichier trop volumineux (max 10 MB)' });
+    return res.status(400).json({ error: 'Fichier trop volumineux (max 10 MB)', code: 'FILE_TOO_LARGE' });
   }
+  if (err.code?.startsWith('CSRF_')) {
+    return res.status(403).json({ error: err.message, code: err.code });
+  }
+
+  // Log unexpected errors
+  logError(err, 'Unhandled');
+
   if (err instanceof Error) {
     return res.status(400).json({ error: err.message });
   }
-  res.status(500).json({ error: 'Erreur serveur interne' });
+  res.status(500).json({ error: 'Erreur serveur interne', code: 'INTERNAL_ERROR' });
 });
 
 // Start server
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(config.port, () => {
+  log.info({ port: config.port, env: config.nodeEnv }, 'Server started');
+
+  if (config.isDevelopment) {
+    console.log(`\n  Server running on http://localhost:${config.port}\n`);
   }
 });
