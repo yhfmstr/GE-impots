@@ -338,16 +338,16 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Documents</h1>
-        <p className="text-text-secondary mt-1">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Documents</h1>
+        <p className="text-muted-foreground">
           Téléchargez vos justificatifs pour extraire automatiquement les données
         </p>
       </div>
 
       {/* Auto-detection toggle */}
-      <Card className="mb-6">
+      <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export default function DocumentsPage() {
 
       {/* Error Message */}
       {error && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive">
           <AlertCircle className="h-5 w-5" />
           <AlertDescription className="flex items-center justify-between">
             <span>{error}</span>
@@ -475,7 +475,7 @@ export default function DocumentsPage() {
 
       {/* Extracted Documents List */}
       {extractions.length > 0 && (
-        <Card className="mb-6">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Documents analysés</CardTitle>
             <span className="text-sm text-muted-foreground">{extractions.length} document(s)</span>

@@ -92,7 +92,7 @@ export default function WizardPage() {
               <Button
                 variant="ghost"
                 onClick={goHome}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-text-secondary hover:text-foreground"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à l'accueil
@@ -117,15 +117,15 @@ export default function WizardPage() {
           <div className="max-w-lg mx-auto text-center">
             <Card>
               <CardContent className="pt-8 pb-8">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-success-light flex items-center justify-center">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
                 </div>
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
                   Déclaration terminée!
                 </h2>
 
-                <p className="text-gray-600 mb-6">
+                <p className="text-text-secondary mb-6">
                   Vous avez complété le profil "{profile?.name}".
                   Consultez vos résultats pour voir le calcul estimatif de vos impôts.
                 </p>
@@ -152,7 +152,7 @@ export default function WizardPage() {
                   <Button
                     variant="ghost"
                     onClick={goHome}
-                    className="w-full text-gray-500"
+                    className="w-full text-muted-foreground"
                   >
                     Retour à l'accueil
                   </Button>
@@ -168,24 +168,22 @@ export default function WizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        {wizardState !== WIZARD_STATES.SELECT_PROFILE && (
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Assistant déclaration guidée
-            </h1>
-            {selectedProfile && (
-              <p className="text-gray-600 mt-1">
-                Profil: {WIZARD_PROFILES[selectedProfile]?.name}
-              </p>
-            )}
-          </div>
-        )}
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      {wizardState !== WIZARD_STATES.SELECT_PROFILE && (
+        <div className="text-center">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Assistant déclaration guidée
+          </h1>
+          {selectedProfile && (
+            <p className="text-muted-foreground">
+              Profil: {WIZARD_PROFILES[selectedProfile]?.name}
+            </p>
+          )}
+        </div>
+      )}
 
-        {renderContent()}
-      </div>
+      {renderContent()}
     </div>
   );
 }

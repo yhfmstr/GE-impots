@@ -50,20 +50,20 @@ export default function GuidePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <FileText className="w-7 h-7 text-primary" />
           Déclaration d'impôts {TAX_YEAR}
         </h1>
-        <p className="text-text-secondary mt-1">
+        <p className="text-muted-foreground">
           Suivez ce guide rubrique par rubrique et importez vos documents
         </p>
       </div>
 
       {/* No data warning */}
       {!hasData && (
-        <Alert variant="warning" className="mb-6">
+        <Alert variant="warning">
           <AlertTriangle className="h-5 w-5" />
           <AlertDescription>
             <strong className="block mb-1">Commencez par importer vos documents</strong>
@@ -96,7 +96,7 @@ export default function GuidePage() {
       <QuickChat selectedPage={selectedPage} />
 
       {/* Tips */}
-      <Alert variant="info" className="mt-6">
+      <Alert variant="info">
         <AlertDescription>
           <strong className="block mb-1">Conseil</strong>
           Ouvrez GeTax dans un autre onglet et suivez ce guide rubrique par rubrique.

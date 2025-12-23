@@ -220,69 +220,70 @@ export default function ProfileUpdatePage() {
   const isMarried = [CIVIL_STATUS.MARIE, CIVIL_STATUS.PACS].includes(formData.civil_status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div className="space-y-4">
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour
+        </Button>
 
-          <h1 className="text-3xl font-bold mb-2">Mon profil</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
           <p className="text-muted-foreground">
             Mettez à jour vos informations personnelles
           </p>
-
-          {freshnessCheck?.needsUpdate && (
-            <Alert className="mt-4">
-              <Calendar className="h-4 w-4" />
-              <AlertDescription>{freshnessCheck.message}</AlertDescription>
-            </Alert>
-          )}
-
-          {profile?.profile_updated_at && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Dernière mise à jour : {formatLastUpdate(profile.profile_updated_at)}
-            </p>
-          )}
         </div>
 
-        {/* Feedback */}
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+        {freshnessCheck?.needsUpdate && (
+          <Alert>
+            <Calendar className="h-4 w-4" />
+            <AlertDescription>{freshnessCheck.message}</AlertDescription>
           </Alert>
         )}
 
-        {success && (
-          <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
-            <Check className="h-4 w-4" />
-            <AlertDescription>Profil mis à jour avec succès</AlertDescription>
-          </Alert>
+        {profile?.profile_updated_at && (
+          <p className="text-sm text-muted-foreground">
+            Dernière mise à jour : {formatLastUpdate(profile.profile_updated_at)}
+          </p>
         )}
+      </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-6">
-            <TabsTrigger value="personal" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Personnel</span>
-            </TabsTrigger>
-            <TabsTrigger value="family" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Famille</span>
-            </TabsTrigger>
-            <TabsTrigger value="professional" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              <span className="hidden sm:inline">Profession</span>
-            </TabsTrigger>
-            <TabsTrigger value="financial" className="flex items-center gap-2">
-              <PiggyBank className="h-4 w-4" />
-              <span className="hidden sm:inline">Finances</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Feedback */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-success bg-success-light text-success">
+          <Check className="h-4 w-4" />
+          <AlertDescription>Profil mis à jour avec succès</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4 mb-6">
+          <TabsTrigger value="personal" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Personnel</span>
+          </TabsTrigger>
+          <TabsTrigger value="family" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Famille</span>
+          </TabsTrigger>
+          <TabsTrigger value="professional" className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4" />
+            <span className="hidden sm:inline">Profession</span>
+          </TabsTrigger>
+          <TabsTrigger value="financial" className="flex items-center gap-2">
+            <PiggyBank className="h-4 w-4" />
+            <span className="hidden sm:inline">Finances</span>
+          </TabsTrigger>
+        </TabsList>
 
           {/* Personal Tab */}
           <TabsContent value="personal">
@@ -616,7 +617,7 @@ export default function ProfileUpdatePage() {
         </Tabs>
 
         {/* Save Button */}
-        <div className="mt-6 flex justify-end">
+        <div className="flex justify-end">
           <Button onClick={handleSave} disabled={loading} size="lg">
             {loading ? (
               <>
@@ -630,7 +631,6 @@ export default function ProfileUpdatePage() {
               </>
             )}
           </Button>
-        </div>
       </div>
     </div>
   );
