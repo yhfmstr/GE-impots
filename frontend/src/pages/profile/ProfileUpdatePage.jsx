@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { db, CIVIL_STATUS, EMPLOYMENT_TYPE } from '@/lib/supabase';
 import { formatLastUpdate } from '@/lib/profileFreshness';
@@ -22,7 +21,6 @@ import {
   Plus,
   Trash2,
   Calendar,
-  ArrowLeft,
 } from 'lucide-react';
 
 const CIVIL_STATUS_OPTIONS = [
@@ -43,7 +41,6 @@ const EMPLOYMENT_OPTIONS = [
 
 export default function ProfileUpdatePage() {
   const { user, profile, refreshProfile, freshnessCheck } = useAuth();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -222,18 +219,14 @@ export default function ProfileUpdatePage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
+        <p className="text-muted-foreground">
+          Mettez à jour vos informations personnelles
+        </p>
+      </div>
 
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mon profil</h1>
-          <p className="text-muted-foreground">
-            Mettez à jour vos informations personnelles
-          </p>
-        </div>
+      <div className="space-y-4">
 
         {freshnessCheck?.needsUpdate && (
           <Alert>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
@@ -77,29 +77,12 @@ export default function WizardPage() {
     navigate('/results');
   };
 
-  // Go back to home
-  const goHome = () => {
-    navigate('/');
-  };
-
   // Render based on state
   const renderContent = () => {
     switch (wizardState) {
       case WIZARD_STATES.SELECT_PROFILE:
         return (
-          <div>
-            <div className="mb-6">
-              <Button
-                variant="ghost"
-                onClick={goHome}
-                className="text-text-secondary hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour à l'accueil
-              </Button>
-            </div>
-            <WizardSelector onSelectProfile={handleSelectProfile} />
-          </div>
+          <WizardSelector onSelectProfile={handleSelectProfile} />
         );
 
       case WIZARD_STATES.IN_PROGRESS:
