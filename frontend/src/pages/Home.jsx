@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { MessageSquare, FileText, Upload, Calculator, ArrowRight, CheckCircle, Sparkles, Clock, ChevronRight, AlertTriangle, Users, FileCheck, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -151,9 +151,10 @@ function DeadlineBanner() {
 
 /**
  * Animated statistic counter
+ * Memoized to prevent unnecessary re-renders
  */
-function StatCounter({ target, suffix = '', label, icon: Icon, delay = 0 }) {
-  const { ref, count, isComplete } = useAnimatedCounter(target, 2000);
+const StatCounter = memo(function StatCounter({ target, suffix = '', label, icon: Icon, delay = 0 }) {
+  const { ref, count } = useAnimatedCounter(target, 2000);
 
   return (
     <div
@@ -170,12 +171,13 @@ function StatCounter({ target, suffix = '', label, icon: Icon, delay = 0 }) {
       <p className="text-sm text-text-secondary mt-1">{label}</p>
     </div>
   );
-}
+});
 
 /**
  * How it works step component
+ * Memoized to prevent unnecessary re-renders
  */
-function HowItWorksStep({ number, title, description, icon: Icon, isLast = false, delay = 0 }) {
+const HowItWorksStep = memo(function HowItWorksStep({ number, title, description, icon: Icon, isLast = false, delay = 0 }) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.2 });
 
   return (
@@ -207,12 +209,13 @@ function HowItWorksStep({ number, title, description, icon: Icon, isLast = false
       <p className="text-sm text-text-secondary max-w-[200px]">{description}</p>
     </div>
   );
-}
+});
 
 /**
  * Scroll-reveal wrapper component
+ * Memoized to prevent unnecessary re-renders
  */
-function RevealOnScroll({ children, className = '', delay = 0 }) {
+const RevealOnScroll = memo(function RevealOnScroll({ children, className = '', delay = 0 }) {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
 
   return (
@@ -228,21 +231,27 @@ function RevealOnScroll({ children, className = '', delay = 0 }) {
       {children}
     </div>
   );
-}
+});
 
 /**
  * Floating decorative shape with mouse parallax
+ * Memoized to prevent unnecessary re-renders
  */
-function FloatingShape({ className, intensity = 20 }) {
+const FloatingShape = memo(function FloatingShape({ className, intensity = 20 }) {
   const { ref, style } = useMouseParallax(intensity);
   return <div ref={ref} style={style} className={className} />;
-}
+});
 
 /**
  * Hero image with mouse parallax effect
+ * Memoized to prevent unnecessary re-renders
  */
-function HeroImage() {
+const HeroImage = memo(function HeroImage() {
   const { ref, style } = useMouseParallax(15);
+
+  const handleImageError = useCallback((e) => {
+    e.target.style.display = 'none';
+  }, []);
 
   return (
     <div className="flex-1 lg:max-w-[45%] relative animate-fade-in animation-delay-300">
@@ -252,25 +261,23 @@ function HeroImage() {
           src="/images/hero.png"
           alt="Illustration déclaration fiscale"
           className="w-full h-auto max-w-md lg:max-w-xl mx-auto drop-shadow-2xl"
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
+          onError={handleImageError}
         />
       </div>
     </div>
   );
-}
+});
 
 export default function Home() {
   return (
-    <div className="space-y-16 overflow-hidden">
+    <div className="space-y-16 overflow-hidden p-4 md:p-6 lg:p-8">
       {/* Hero Section with Floating Elements */}
-      <div className="min-h-[calc(100vh-12rem)] flex flex-col justify-center relative">
-        {/* Hero Gradient Glow - Full bleed to screen edge */}
+      <div className="min-h-[60vh] flex flex-col justify-center relative">
+        {/* Hero Gradient Glow - Positioned within content area */}
         <div
-          className="fixed top-0 right-0 w-[60vw] h-[80vh] pointer-events-none animate-fade-in"
+          className="absolute top-0 right-0 w-full h-full max-w-[80%] pointer-events-none animate-fade-in"
           style={{
-            background: 'radial-gradient(ellipse at 70% 30%, rgba(214, 69, 80, 0.25) 0%, rgba(196, 151, 58, 0.15) 40%, transparent 70%)',
+            background: 'radial-gradient(ellipse at 70% 30%, rgba(214, 69, 80, 0.20) 0%, rgba(196, 151, 58, 0.12) 40%, transparent 70%)',
             filter: 'blur(60px)',
             zIndex: 0,
           }}
@@ -331,26 +338,32 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 animate-fade-in-up animation-delay-600">
               <Button asChild size="lg" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-3 md:py-4 group">
-                <Link to="/declaration">
-                  Commencer ma déclaration
+                <Link to="/start">
+                  Estimer mes impôts
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base md:text-lg px-6 md:px-8 py-3 md:py-4">
-                <Link to="/chat">
-                  <MessageSquare className="w-5 h-5 mr-2" />
-                  Poser une question
+                <Link to="/declaration">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Déclaration directe
                 </Link>
               </Button>
             </div>
+            <p className="text-sm text-text-muted mt-4 animate-fade-in animation-delay-700">
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                2 minutes pour obtenir une estimation personnalisée
+              </span>
+            </p>
           </div>
 
           {/* Hero Image - Right side with parallax effect */}
           <HeroImage />
         </div>
 
-        {/* Scroll Indicator - positioned at bottom of hero */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-text-muted animate-fade-in-up-centered animation-delay-800">
+        {/* Scroll Indicator */}
+        <div className="mt-8 flex flex-col items-center gap-2 text-text-muted animate-fade-in-up-centered animation-delay-800">
           <span className="text-xs uppercase tracking-wider">Découvrir</span>
           <div className="w-6 h-10 border-2 border-border rounded-full flex justify-center pt-2">
             <div className="w-1 h-2 bg-text-muted rounded-full animate-bounce" />
@@ -494,22 +507,22 @@ export default function Home() {
             </Link>
           </RevealOnScroll>
 
-          {/* Estimation */}
+          {/* Quick Estimation */}
           <RevealOnScroll delay={500}>
-            <Link to="/results" className="block group h-full">
+            <Link to="/start" className="block group h-full">
               <Card className="h-full bg-gradient-to-br from-primary-light to-card border-primary/20 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1">
                 <CardContent className="p-6 h-full flex flex-col">
                   <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                     <Calculator className="w-6 h-6 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    Estimation d'impôts
+                    Estimation rapide
                   </h3>
                   <p className="text-text-secondary text-sm flex-1">
-                    Calcul détaillé ICC et IFD avec transparence totale.
+                    6 questions pour une estimation personnalisée en 2 minutes.
                   </p>
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                    <span className="text-xs text-text-muted">Barèmes {TAX_YEAR}</span>
+                    <span className="text-xs text-text-muted">Sans inscription</span>
                     <ChevronRight className="w-5 h-5 text-primary/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
                 </CardContent>
