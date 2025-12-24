@@ -1,10 +1,14 @@
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useChat } from '@/lib/chatContext';
-import { loadSecure, STORAGE_KEYS } from '@/lib/storage';
+import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
+import { uploadApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   FileText,
   Upload,
@@ -18,7 +22,11 @@ import {
   Calendar,
   TrendingUp,
   FolderOpen,
+  User,
+  RefreshCw,
 } from 'lucide-react';
+import { TaxHistorySection, ComparisonPanel } from '@/components/dashboard';
+import { useTaxHistoryStore } from '@/stores/taxHistoryStore';
 
 // Calculate declaration completion percentage
 function calculateProgress(taxData) {
@@ -61,9 +69,45 @@ function getDaysUntilDeadline() {
   return diffDays;
 }
 
+// Calculate profile completion
+function calculateProfileCompletion(profile) {
+  if (!profile) return { percent: 0, missing: [] };
+
+  const fields = [
+    { key: 'first_name', label: 'Prénom', weight: 15 },
+    { key: 'last_name', label: 'Nom', weight: 15 },
+    { key: 'birth_date', label: 'Date de naissance', weight: 10 },
+    { key: 'address', label: 'Adresse', weight: 15 },
+    { key: 'postal_code', label: 'NPA', weight: 10 },
+    { key: 'city', label: 'Ville', weight: 10 },
+    { key: 'marital_status', label: 'État civil', weight: 10 },
+    { key: 'numero_contribuable', label: 'N° contribuable', weight: 15 },
+  ];
+
+  const missing = [];
+  let completed = 0;
+
+  fields.forEach(({ key, label, weight }) => {
+    if (profile[key] && profile[key] !== '') {
+      completed += weight;
+    } else {
+      missing.push(label);
+    }
+  });
+
+  return { percent: Math.min(100, completed), missing };
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { openChat } = useChat();
+  const navigate = useNavigate();
+
+  // Tax history store
+  const {
+    getAvailableYears,
+    getMostRecentDeclaration
+  } = useTaxHistoryStore();
 
   // Load declaration data from storage
   const taxData = loadSecure(STORAGE_KEYS.TAX_DATA) || {};
@@ -74,8 +118,100 @@ export default function DashboardPage() {
   const daysLeft = getDaysUntilDeadline();
   const StatusIcon = status.icon;
 
+  // Profile completion
+  const profileStatus = useMemo(() => calculateProfileCompletion(profile), [profile]);
+  const profileLastUpdate = profile?.updated_at
+    ? new Date(profile.updated_at).toLocaleDateString('fr-CH')
+    : null;
+
+  // Tax history
+  const availableYears = getAvailableYears();
+  const [selectedYear, setSelectedYear] = useState(
+    availableYears.length > 0 ? availableYears[0] : new Date().getFullYear() - 1
+  );
+  const mostRecentDeclaration = getMostRecentDeclaration();
+
   // Get user's first name for greeting
   const firstName = profile?.first_name || profile?.email?.split('@')[0] || 'Utilisateur';
+
+  // Handlers
+  const handleUploadClick = () => navigate('/documents');
+  const handleViewDetails = (type, id) => {
+    if (type === 'year') {
+      navigate(`/history/${id}`);
+    } else if (type === 'bordereau') {
+      navigate(`/documents?highlight=${id}`);
+    }
+  };
+
+  // Handle file drop from TaxHistorySection
+  const handleFileDrop = useCallback(async (files) => {
+    const { importDeclarationFromExtraction, importBordereauFromExtraction } = useTaxHistoryStore.getState();
+
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append('document', file);
+
+        toast.loading(`Analyse de ${file.name}...`, { id: `upload-${file.name}` });
+
+        const response = await uploadApi.post('/documents/extract-auto', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (response.data.success && response.data.extractedData) {
+          const { detectedType, extractedData } = response.data;
+
+          // Save to extractions list
+          const saved = loadSecure(STORAGE_KEYS.EXTRACTIONS, []);
+          const newExtraction = {
+            id: Date.now(),
+            type: detectedType,
+            fileName: file.name,
+            extractedData,
+            timestamp: new Date().toISOString()
+          };
+          saveSecure(STORAGE_KEYS.EXTRACTIONS, [...saved, newExtraction]);
+
+          // Import to tax history store based on type
+          if (detectedType === 'declaration-fiscale') {
+            importDeclarationFromExtraction(extractedData);
+            toast.success(`Déclaration ${extractedData.taxYear || ''} importée`, {
+              id: `upload-${file.name}`,
+              description: 'Les données ont été ajoutées à votre historique fiscal'
+            });
+          } else if (detectedType === 'bordereau-icc') {
+            importBordereauFromExtraction(extractedData, 'icc');
+            toast.success(`Bordereau ICC ${extractedData.taxYear || ''} importé`, {
+              id: `upload-${file.name}`,
+              description: 'Le bordereau cantonal a été ajouté'
+            });
+          } else if (detectedType === 'bordereau-ifd') {
+            importBordereauFromExtraction(extractedData, 'ifd');
+            toast.success(`Bordereau IFD ${extractedData.taxYear || ''} importé`, {
+              id: `upload-${file.name}`,
+              description: 'Le bordereau fédéral a été ajouté'
+            });
+          } else {
+            toast.success(`Document analysé: ${detectedType}`, {
+              id: `upload-${file.name}`,
+              description: 'Consultez la page Documents pour plus de détails'
+            });
+          }
+        } else {
+          toast.error(`Échec de l'analyse de ${file.name}`, {
+            id: `upload-${file.name}`,
+            description: response.data.error || 'Type de document non reconnu'
+          });
+        }
+      } catch (err) {
+        toast.error(`Erreur: ${file.name}`, {
+          id: `upload-${file.name}`,
+          description: err.response?.data?.error || err.message || 'Erreur lors de l\'analyse'
+        });
+      }
+    }
+  }, []);
 
   // Quick actions based on progress
   const quickActions = [
@@ -123,11 +259,39 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* Profile Completion */}
+        <Card className={profileStatus.percent < 100 ? 'border-amber-200 dark:border-amber-800' : ''}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Profil</CardTitle>
+            <User className={`h-4 w-4 ${profileStatus.percent === 100 ? 'text-green-500' : 'text-amber-500'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profileStatus.percent}%</div>
+            <Progress value={profileStatus.percent} className="mt-2" />
+            <div className="flex items-center justify-between mt-2">
+              <p className={`text-xs ${profileStatus.percent === 100 ? 'text-green-600' : 'text-amber-600'}`}>
+                {profileStatus.percent === 100 ? 'Complet' : `${profileStatus.missing.length} champ(s) manquant(s)`}
+              </p>
+              {profileLastUpdate && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  {profileLastUpdate}
+                </p>
+              )}
+            </div>
+            {profileStatus.percent < 100 && (
+              <Button variant="link" size="sm" className="p-0 h-auto mt-1" asChild>
+                <Link to="/profile/update">Compléter →</Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Declaration Progress */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progression</CardTitle>
+            <CardTitle className="text-sm font-medium">Déclaration 2024</CardTitle>
             <StatusIcon className={`h-4 w-4 ${status.color}`} />
           </CardHeader>
           <CardContent>
@@ -220,6 +384,22 @@ export default function DashboardPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Tax History and Comparison Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Tax History Section */}
+        <TaxHistorySection
+          onUploadClick={handleUploadClick}
+          onViewDetails={handleViewDetails}
+          onFileDrop={handleFileDrop}
+        />
+
+        {/* Comparison Panel */}
+        <ComparisonPanel
+          selectedYear={selectedYear}
+          previousYear={selectedYear > 0 ? selectedYear - 1 : null}
+        />
       </div>
 
       {/* Getting Started / Next Steps */}

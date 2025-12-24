@@ -1,10 +1,11 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { pdf } from 'pdf-to-img';
-import { getClient } from './anthropicClient.js';
+import { getClient, getModel } from './anthropicClient.js';
 
-// Get shared client lazily
+// Get shared client and model lazily
 const getAnthropicClient = () => getClient();
+const getConfiguredModel = () => getModel();
 
 // Document type definitions with extraction instructions
 const DOCUMENT_TYPES = {
@@ -211,10 +212,223 @@ Les dettes sont déductibles de la fortune.`
 
 Note: Pour Genève, la valeur locative est déterminée par questionnaire officiel.`
   },
+
+  // ===========================================
+  // HISTORICAL DOCUMENTS (for prefill & comparison)
+  // ===========================================
+
+  'declaration-fiscale': {
+    name: 'Déclaration fiscale complète',
+    description: 'Full tax declaration from previous year (GeTax export)',
+    multiPage: true, // Flag for multi-page processing
+    fields: [
+      // Personal info
+      { key: 'taxYear', label: 'Année fiscale', type: 'number' },
+      { key: 'numeroContribuable', label: 'N° contribuable', type: 'string' },
+      { key: 'filingDate', label: 'Date de dépôt', type: 'string' },
+      { key: 'filingReference', label: 'N° dossier e-démarches', type: 'string' },
+      { key: 'fullName', label: 'Nom complet', type: 'string' },
+      { key: 'dateOfBirth', label: 'Date de naissance', type: 'string' },
+      { key: 'civilStatus', label: 'État civil', type: 'string' },
+      { key: 'nationality', label: 'Nationalité', type: 'string' },
+      { key: 'profession', label: 'Profession', type: 'string' },
+      { key: 'address', label: 'Adresse complète', type: 'string' },
+      { key: 'commune', label: 'Commune', type: 'string' },
+      { key: 'phone', label: 'Téléphone', type: 'string' },
+      { key: 'annualRent', label: 'Loyer annuel', type: 'number' },
+
+      // Summary totals (PG2-PG4)
+      { key: 'revenuBrutICC', label: 'Revenu brut ICC (91.00)', type: 'number' },
+      { key: 'revenuBrutIFD', label: 'Revenu brut IFD (91.00)', type: 'number' },
+      { key: 'revenuNetICC', label: 'Revenu net ICC (95.00/99.00)', type: 'number' },
+      { key: 'revenuNetIFD', label: 'Revenu net IFD (95.00/99.00)', type: 'number' },
+      { key: 'fortuneBrute', label: 'Fortune brute (91.00)', type: 'number' },
+      { key: 'fortuneNette', label: 'Fortune nette (95.00/99.00)', type: 'number' },
+
+      // Income details (Annexe A)
+      { key: 'salaireBrut', label: 'Salaire brut (11.10)', type: 'number' },
+      { key: 'bonus', label: 'Bonus/gratification (11.15)', type: 'number' },
+      { key: 'revenuMobilier', label: 'Revenu mobilier (14.00)', type: 'number' },
+
+      // Deductions (A1, C3, C4)
+      { key: 'cotisationsAVS', label: 'Cotisations AVS/AI (31.10)', type: 'number' },
+      { key: 'cotisationsLPP', label: 'Cotisations LPP (31.12)', type: 'number' },
+      { key: 'pilier3a', label: 'Pilier 3a (31.40)', type: 'number' },
+      { key: 'rachatLPP', label: 'Rachat LPP (31.30)', type: 'number' },
+      { key: 'fraisRepas', label: 'Frais repas (31.60)', type: 'number' },
+      { key: 'fraisDeplacements', label: 'Frais déplacements (31.70/71)', type: 'number' },
+      { key: 'autresFraisPro', label: 'Autres frais prof (31.63)', type: 'number' },
+      { key: 'primesAssuranceVie', label: 'Primes assurance-vie (52.11)', type: 'number' },
+      { key: 'primesMaladie', label: 'Primes maladie (52.21)', type: 'number' },
+      { key: 'primesAccident', label: 'Primes accident (52.22)', type: 'number' },
+      { key: 'interetsDettes', label: 'Intérêts dettes (55.00)', type: 'number' },
+      { key: 'fraisMedicaux', label: 'Frais médicaux (71.00)', type: 'number' },
+
+      // Wealth (F1, F2, E)
+      { key: 'comptesBancaires', label: 'Total comptes bancaires', type: 'number' },
+      { key: 'titres', label: 'Total titres/placements', type: 'number' },
+      { key: 'valeurRachatAssVie', label: 'Valeur rachat ass-vie (16.70)', type: 'number' },
+      { key: 'autresElementsFortune', label: 'Autres éléments fortune (16.00)', type: 'number' },
+      { key: 'dettes', label: 'Total dettes (55.00)', type: 'number' },
+      { key: 'deductionSociale', label: 'Déduction sociale (51.50)', type: 'number' },
+
+      // Employer info
+      { key: 'employerName', label: 'Nom employeur', type: 'string' },
+      { key: 'employerAddress', label: 'Adresse employeur', type: 'string' },
+    ],
+    prompt: `Analyse cette DÉCLARATION FISCALE COMPLÈTE de Genève (format GeTax) et extrait TOUTES les informations.
+
+PAGES IMPORTANTES:
+- Quittance (page 1): N° contribuable, date dépôt, référence, résumés
+- PG1: Informations personnelles
+- PG2: Récapitulation revenus (codes 11.00 à 91.00)
+- PG3: Récapitulation déductions (codes 31.00 à 99.00)
+- PG4: Fortune (codes 12.00 à 99.00)
+- Annexe A1: Détail activité dépendante
+- Annexe C3: Assurances
+- Annexe E: Intérêts et dettes
+- Annexe F1/F2: État des titres
+
+EXTRACTION PRIORITAIRE:
+1. Numéro de contribuable et référence dossier
+2. Données personnelles (nom, adresse, profession)
+3. Totaux ICC et IFD (revenus, déductions, fortune)
+4. Détails employeur et salaires
+5. Cotisations sociales et pilier 3a
+6. Comptes bancaires et titres
+7. Dettes et intérêts
+
+IMPORTANT: Cette déclaration servira à PRÉ-REMPLIR la déclaration de l'année suivante.
+Extrait tous les montants disponibles avec leurs codes GeTax (11.10, 31.40, etc.).`
+  },
+
+  'bordereau-icc': {
+    name: 'Bordereau ICC (cantonal/communal)',
+    description: 'Tax assessment notice for cantonal and communal taxes',
+    fields: [
+      { key: 'taxYear', label: 'Année fiscale', type: 'number' },
+      { key: 'numeroContribuable', label: 'N° contribuable', type: 'string' },
+      { key: 'referenceNumber', label: 'N° référence', type: 'string' },
+      { key: 'notificationDate', label: 'Date de notification', type: 'string' },
+      { key: 'periodeDebut', label: 'Période début', type: 'string' },
+      { key: 'periodeFin', label: 'Période fin', type: 'string' },
+
+      // Assessed amounts
+      { key: 'revenuImposable', label: 'Revenu imposable', type: 'number' },
+      { key: 'fortuneImposable', label: 'Fortune imposable', type: 'number' },
+      { key: 'tauxRevenu', label: 'Taux revenu', type: 'number' },
+      { key: 'tauxFortune', label: 'Taux fortune', type: 'number' },
+      { key: 'bareme', label: 'Barème appliqué', type: 'string' },
+
+      // Cantonal taxes
+      { key: 'impotBaseRevenu', label: 'Impôt de base revenu', type: 'number' },
+      { key: 'centimesAdditionnelsRevenu', label: 'Centimes additionnels revenu', type: 'number' },
+      { key: 'reduction12pct', label: 'Réduction 12%', type: 'number' },
+      { key: 'aideDomicileRevenu', label: 'Aide à domicile revenu', type: 'number' },
+      { key: 'impotBaseFortune', label: 'Impôt de base fortune', type: 'number' },
+      { key: 'centimesAdditionnelsFortune', label: 'Centimes additionnels fortune', type: 'number' },
+      { key: 'aideDomicileFortune', label: 'Aide à domicile fortune', type: 'number' },
+
+      // Communal taxes
+      { key: 'commune', label: 'Commune', type: 'string' },
+      { key: 'partPrivilegieeRevenu', label: 'Part privilégiée revenu', type: 'number' },
+      { key: 'centimesCommunauxRevenu', label: 'Centimes communaux revenu', type: 'number' },
+      { key: 'partPrivilegieeFortune', label: 'Part privilégiée fortune', type: 'number' },
+      { key: 'centimesCommunauxFortune', label: 'Centimes communaux fortune', type: 'number' },
+
+      // Other taxes
+      { key: 'taxePersonnelle', label: 'Taxe personnelle', type: 'number' },
+
+      // Imputations
+      { key: 'impotAnticipe', label: 'Impôt anticipé', type: 'number' },
+      { key: 'retenueSupplementaire', label: 'Retenue supplémentaire', type: 'number' },
+      { key: 'imputationEtrangers', label: 'Imputation étrangers', type: 'number' },
+
+      // Totals
+      { key: 'totalI', label: 'Total I (avant imputations)', type: 'number' },
+      { key: 'totalII', label: 'Total II (après imputations)', type: 'number' },
+      { key: 'frais', label: 'Frais', type: 'number' },
+      { key: 'totalImpots', label: 'TOTAL DES IMPOTS', type: 'number' },
+    ],
+    prompt: `Analyse ce BORDEREAU D'IMPÔTS CANTONAUX ET COMMUNAUX (ICC) de Genève.
+
+Ce document est l'avis de taxation FINAL émis par l'Administration fiscale cantonale.
+Il montre les montants DÉFINITIFS après vérification par l'administration.
+
+EXTRAIRE:
+1. IDENTIFIANTS: N° contribuable, N° référence, date notification, période
+2. MONTANTS IMPOSABLES: Revenu et fortune imposables (peuvent différer de la déclaration)
+3. IMPÔTS CANTONAUX:
+   - Impôt de base sur le revenu
+   - Centimes additionnels sur le revenu
+   - Réduction de 12%
+   - Aide à domicile sur le revenu
+   - Impôt de base sur la fortune
+   - Centimes additionnels sur la fortune
+   - Aide à domicile sur la fortune
+4. IMPÔTS COMMUNAUX:
+   - Commune de taxation
+   - Part privilégiée (revenu et fortune)
+   - Centimes additionnels communaux
+5. AUTRES: Taxe personnelle, frais
+6. IMPUTATIONS: Impôt anticipé, retenues, imputation étrangers
+7. TOTAUX: Total I, Total II, Total des impôts
+
+IMPORTANT: Ce bordereau permet de COMPARER le revenu/fortune déclaré vs final.
+Cela aide à identifier les ajustements faits par l'administration.`
+  },
+
+  'bordereau-ifd': {
+    name: 'Bordereau IFD (fédéral)',
+    description: 'Tax assessment notice for federal direct tax',
+    fields: [
+      { key: 'taxYear', label: 'Année fiscale', type: 'number' },
+      { key: 'numeroContribuable', label: 'N° contribuable', type: 'string' },
+      { key: 'referenceNumber', label: 'N° référence', type: 'string' },
+      { key: 'notificationDate', label: 'Date de notification', type: 'string' },
+      { key: 'periodeDebut', label: 'Période début', type: 'string' },
+      { key: 'periodeFin', label: 'Période fin', type: 'string' },
+
+      // Assessed amounts
+      { key: 'revenuImposable', label: 'Revenu imposable', type: 'number' },
+      { key: 'tauxRevenu', label: 'Taux revenu', type: 'number' },
+      { key: 'bareme', label: 'Barème appliqué', type: 'string' },
+
+      // Federal tax
+      { key: 'impotBaseRevenu', label: 'Impôt de base sur le revenu', type: 'number' },
+      { key: 'totalImpots', label: 'TOTAL DES IMPOTS', type: 'number' },
+
+      // Provisional comparison
+      { key: 'dernierBordereauProvisoire', label: 'Dernier bordereau provisoire', type: 'number' },
+      { key: 'dateProvisoire', label: 'Date bordereau provisoire', type: 'string' },
+      { key: 'degrevement', label: 'Dégrèvement (différence)', type: 'number' },
+
+      // Payment
+      { key: 'delaiPaiement', label: 'Délai de paiement', type: 'string' },
+    ],
+    prompt: `Analyse ce BORDEREAU D'IMPÔT FÉDÉRAL DIRECT (IFD) de Genève.
+
+Ce document est l'avis de taxation FINAL pour l'impôt fédéral.
+Il est plus simple que le bordereau ICC car il n'y a pas d'impôt sur la fortune au niveau fédéral.
+
+EXTRAIRE:
+1. IDENTIFIANTS: N° contribuable, N° référence, date notification, période
+2. REVENU IMPOSABLE: Montant et taux
+3. BARÈME: Article de loi appliqué (ex: art. 36, alinéa 1 LIFD)
+4. IMPÔT: Impôt de base sur le revenu
+5. TOTAL DES IMPÔTS
+6. COMPARAISON PROVISOIRE (si présent):
+   - Dernier bordereau provisoire notifié (montant et date)
+   - Dégrèvement (différence positive = remboursement)
+7. DÉLAI DE PAIEMENT
+
+NOTE: L'IFD est généralement ~15-20% du total des impôts.
+Le dégrèvement indique si l'acompte provisoire était trop élevé.`
+  },
 };
 
 // Convert PDF to images
-const MAX_PDF_PAGES = 10; // Maximum pages to process
+const MAX_PDF_PAGES = 15; // Maximum pages to process (increased for full declarations)
 
 async function convertPdfToImages(filePath) {
   try {
@@ -328,9 +542,15 @@ Format de réponse attendu (JSON uniquement):
 
   try {
     const client = getAnthropicClient();
+
+    // Increase max_tokens for complex multi-page documents
+    const isComplexDocument = docConfig.multiPage ||
+      ['declaration-fiscale', 'bordereau-icc', 'bordereau-ifd'].includes(documentType);
+    const maxTokens = isComplexDocument ? 4096 : 2048;
+
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+      model: getConfiguredModel(),
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [
         {
@@ -455,7 +675,7 @@ Retourne un JSON avec ce format:
   try {
     const client = getAnthropicClient();
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: getConfiguredModel(),
       max_tokens: 512,
       system: systemPrompt,
       messages: [
