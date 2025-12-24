@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, Save, Sparkles } from 'lucide-react';
-import axios from 'axios';
+import { ChevronLeft, ChevronRight, Check, Save, Sparkles, AlertCircle } from 'lucide-react';
+import api from '@/lib/api';
 import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
 import SuggestionIndicator, { SuggestionBadge } from '@/components/SuggestionIndicator';
 import AutoFillPanel from '@/components/AutoFillPanel';
-
-const API_URL = 'http://localhost:3002/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const SECTIONS = [
   {
@@ -109,9 +117,44 @@ export default function Questionnaire({ onComplete }) {
   const [suggestions, setSuggestions] = useState([]);
   const [showAutoFillPanel, setShowAutoFillPanel] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const section = SECTIONS[currentSection];
   const isLastSection = currentSection === SECTIONS.length - 1;
+
+  // Validation function
+  const validateField = (field, value) => {
+    if (field.required && (value === undefined || value === null || value === '')) {
+      return 'Ce champ est requis';
+    }
+    if (field.type === 'number' && field.max && value > field.max) {
+      return `La valeur maximum est ${field.max.toLocaleString()} CHF`;
+    }
+    if (field.type === 'number' && field.min !== undefined && value < field.min) {
+      return `La valeur minimum est ${field.min.toLocaleString()} CHF`;
+    }
+    if (field.type === 'number' && value < 0) {
+      return 'La valeur ne peut pas être négative';
+    }
+    return null;
+  };
+
+  // Validate current section
+  const validateSection = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    section.fields.filter(shouldShowField).forEach(field => {
+      const error = validateField(field, formData[field.name]);
+      if (error) {
+        newErrors[field.name] = error;
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   // Load suggestions on mount
   useEffect(() => {
@@ -130,6 +173,14 @@ export default function Questionnaire({ onComplete }) {
     setFormData(newData);
     // Save to secure storage on every change
     saveSecure(STORAGE_KEYS.TAX_DATA, newData);
+    // Clear error for this field when user types
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const shouldShowField = (field) => {
@@ -199,7 +250,7 @@ export default function Questionnaire({ onComplete }) {
   const saveSection = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API_URL}/declaration/questionnaire/${currentSection}`, {
+      await api.post(`/declaration/questionnaire/${currentSection}`, {
         data: formData
       });
     } catch (error) {
@@ -210,11 +261,15 @@ export default function Questionnaire({ onComplete }) {
   };
 
   const nextSection = async () => {
+    // Validate before proceeding (validation is optional, show warnings but allow proceed)
+    validateSection();
+
     await saveSection();
     if (isLastSection) {
       onComplete?.(formData);
     } else {
       setCurrentSection(prev => prev + 1);
+      setErrors({}); // Clear errors when moving to new section
     }
   };
 
@@ -275,14 +330,19 @@ export default function Questionnaire({ onComplete }) {
         {section.fields.filter(shouldShowField).map((field) => {
           const suggestion = getSuggestionForField(field.name);
           const hasSuggestion = !!suggestion;
+          const fieldError = errors[field.name];
+          const fieldId = `field-${field.name}`;
 
           return (
-            <div key={field.name}>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-secondary-foreground">
+            <div key={field.name} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor={fieldId}
+                  className={fieldError ? 'text-destructive' : ''}
+                >
                   {field.label}
-                  {field.max && <span className="text-text-light ml-2">(max {field.max.toLocaleString()} CHF)</span>}
-                </label>
+                  {field.max && <span className="text-muted-foreground ml-2 font-normal">(max {field.max.toLocaleString()} CHF)</span>}
+                </Label>
                 {hasSuggestion && (
                   <SuggestionIndicator
                     suggestion={suggestion}
@@ -305,66 +365,76 @@ export default function Questionnaire({ onComplete }) {
               )}
 
               {field.type === 'text' && (
-                <input
+                <Input
+                  id={fieldId}
                   type="text"
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent ${
-                    hasSuggestion ? 'border-dashed border-info mt-2' : 'border-border'
-                  }`}
+                  className={hasSuggestion ? 'border-dashed border-info' : ''}
+                  aria-invalid={!!fieldError}
+                  aria-describedby={fieldError ? `${fieldId}-error` : undefined}
                 />
               )}
 
               {field.type === 'number' && (
-                <input
+                <Input
+                  id={fieldId}
                   type="number"
                   value={formData[field.name] || ''}
                   onChange={(e) => handleChange(field.name, parseFloat(e.target.value) || 0)}
                   max={field.max}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent ${
-                    hasSuggestion ? 'border-dashed border-info mt-2' : 'border-border'
-                  }`}
+                  min={0}
+                  className={hasSuggestion ? 'border-dashed border-info' : ''}
+                  aria-invalid={!!fieldError}
+                  aria-describedby={fieldError ? `${fieldId}-error` : undefined}
                 />
               )}
 
               {field.type === 'select' && (
-                <select
+                <Select
                   value={formData[field.name] || ''}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
+                  onValueChange={(value) => handleChange(field.name, value)}
                 >
-                  <option value="">Sélectionner...</option>
-                  {field.options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id={fieldId} aria-invalid={!!fieldError}>
+                    <SelectValue placeholder="Sélectionner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
 
               {field.type === 'boolean' && (
-                <div className="flex gap-4">
-                  <button
+                <div className="flex gap-4" role="radiogroup" aria-labelledby={fieldId}>
+                  <Button
                     type="button"
+                    variant={formData[field.name] === true ? 'default' : 'outline'}
                     onClick={() => handleChange(field.name, true)}
-                    className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
-                      formData[field.name] === true
-                        ? 'border-primary bg-primary-light text-primary'
-                        : 'border-border hover:border-muted-foreground'
-                    }`}
+                    className="flex-1"
+                    aria-pressed={formData[field.name] === true}
                   >
                     Oui
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant={formData[field.name] === false ? 'default' : 'outline'}
                     onClick={() => handleChange(field.name, false)}
-                    className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
-                      formData[field.name] === false
-                        ? 'border-primary bg-primary-light text-primary'
-                        : 'border-border hover:border-muted-foreground'
-                    }`}
+                    className="flex-1"
+                    aria-pressed={formData[field.name] === false}
                   >
                     Non
-                  </button>
+                  </Button>
                 </div>
+              )}
+
+              {/* Error message */}
+              {fieldError && (
+                <p id={`${fieldId}-error`} className="text-sm text-destructive flex items-center gap-1" role="alert">
+                  <AlertCircle className="w-4 h-4" />
+                  {fieldError}
+                </p>
               )}
             </div>
           );
@@ -373,34 +443,33 @@ export default function Questionnaire({ onComplete }) {
 
       {/* Navigation */}
       <div className="p-4 border-t border-border flex justify-between">
-        <button
+        <Button
+          variant="ghost"
           onClick={prevSection}
           disabled={currentSection === 0}
-          className="flex items-center gap-2 px-4 py-2 text-text-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4 mr-2" />
           Précédent
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={nextSection}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50"
         >
           {saving ? (
-            <Save className="w-4 h-4 animate-pulse" />
+            <Save className="w-4 h-4 animate-pulse mr-2" />
           ) : isLastSection ? (
             <>
-              <Check className="w-4 h-4" />
+              <Check className="w-4 h-4 mr-2" />
               Terminer
             </>
           ) : (
             <>
               Suivant
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 ml-2" />
             </>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

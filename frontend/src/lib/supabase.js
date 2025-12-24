@@ -54,14 +54,48 @@ export const DECLARATION_STATUS = {
 
 // Database queries
 export const db = {
-  // Profiles
+  // Profiles - Using native fetch to avoid Supabase client hanging issues
   async getProfile(userId) {
-    if (!supabase) return { data: null, error: new Error('Supabase not configured') };
-    return supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+    try {
+      // Get access token from localStorage
+      let accessToken = supabaseAnonKey;
+      try {
+        const storageKey = `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          accessToken = parsed.access_token || supabaseAnonKey;
+        }
+      } catch (e) {
+        // Fallback to anon key if storage access fails
+      }
+      
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=*&id=eq.${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { data: null, error: data };
+      }
+      
+      return { data: data[0] || null, error: null };
+    } catch (err) {
+      console.error('Profile query error:', err);
+      return { data: null, error: err };
+    }
   },
 
   async updateProfile(userId, updates) {

@@ -43,14 +43,14 @@ export default function WizardProgress({
   onSectionClick
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header with time estimate */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-text-secondary">
           Étape {currentIndex + 1} sur {sections.length}
         </span>
         {estimatedTimeRemaining !== undefined && (
-          <span className="text-sm text-gray-500 flex items-center gap-1">
+          <span className="text-sm text-muted-foreground flex items-center gap-1">
             <Clock className="w-4 h-4" />
             ~{estimatedTimeRemaining} min restantes
           </span>
@@ -58,9 +58,9 @@ export default function WizardProgress({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+      <div className="w-full bg-muted rounded-full h-2 mb-4">
         <div
-          className="bg-red-600 h-2 rounded-full transition-all duration-300"
+          className="bg-primary h-2 rounded-full transition-all duration-300"
           style={{ width: `${((currentIndex + 1) / sections.length) * 100}%` }}
         />
       </div>
@@ -88,11 +88,11 @@ export default function WizardProgress({
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                   isCompleted
-                    ? 'bg-green-500 text-white'
+                    ? 'bg-success text-success-foreground'
                     : isCurrent
-                    ? 'bg-red-600 text-white ring-4 ring-red-100'
-                    : 'bg-gray-200 text-gray-400'
-                } ${isClickable && !isCurrent ? 'group-hover:ring-2 group-hover:ring-gray-300' : ''}`}
+                    ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
+                    : 'bg-muted text-muted-foreground'
+                } ${isClickable && !isCurrent ? 'group-hover:ring-2 group-hover:ring-muted-foreground/30' : ''}`}
               >
                 {isCompleted ? (
                   <Check className="w-4 h-4" />
@@ -104,7 +104,7 @@ export default function WizardProgress({
               {/* Label (visible on larger screens) */}
               <span
                 className={`text-xs hidden md:block max-w-[80px] text-center truncate ${
-                  isCurrent ? 'text-red-600 font-medium' : 'text-gray-500'
+                  isCurrent ? 'text-primary font-medium' : 'text-muted-foreground'
                 }`}
               >
                 {metadata?.title?.split(' ')[0]}
@@ -136,10 +136,10 @@ export function WizardProgressCompact({
             key={sectionId}
             className={`h-1.5 flex-1 rounded-full transition-all ${
               isCompleted
-                ? 'bg-green-500'
+                ? 'bg-success'
                 : isCurrent
-                ? 'bg-red-600'
-                : 'bg-gray-200'
+                ? 'bg-primary'
+                : 'bg-muted'
             }`}
           />
         );

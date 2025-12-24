@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// Default model - Claude Opus 4.5
+const DEFAULT_MODEL = 'claude-opus-4-5-20251101';
+
 // Singleton Anthropic client - lazy initialized
 let client = null;
 
@@ -13,4 +16,9 @@ export function getClient() {
   return client;
 }
 
-export default { getClient };
+// Get configured model from environment or use default
+export function getModel() {
+  return process.env.CLAUDE_MODEL || DEFAULT_MODEL;
+}
+
+export default { getClient, getModel };

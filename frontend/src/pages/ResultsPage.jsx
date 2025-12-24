@@ -2,10 +2,10 @@ import Results from '../components/Results';
 
 export default function ResultsPage() {
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Résultats</h1>
-        <p className="text-text-secondary mt-1">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Résultats</h1>
+        <p className="text-muted-foreground">
           Estimation de vos impôts et recommandations d'optimisation
         </p>
       </div>

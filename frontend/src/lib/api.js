@@ -102,6 +102,55 @@ api.interceptors.response.use(
 export const uploadApi = axios.create({
   baseURL: API_URL,
   timeout: 120000, // 2 minutes for file uploads + AI processing
+  withCredentials: true, // Include cookies for CSRF
 });
+
+// Add CSRF interceptor to uploadApi as well
+uploadApi.interceptors.request.use(
+  async (config) => {
+    const method = config.method?.toLowerCase();
+    if (['post', 'put', 'delete', 'patch'].includes(method)) {
+      // Fetch CSRF token if not already present
+      if (!csrfToken) {
+        await fetchCsrfToken();
+      }
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for uploadApi error handling and CSRF retry
+uploadApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle CSRF token errors - retry once with a fresh token
+    if (error.response?.status === 403 &&
+        error.response?.data?.code === 'CSRF_MISSING' &&
+        !originalRequest._retry) {
+      originalRequest._retry = true;
+      csrfToken = null; // Clear the old token
+      await fetchCsrfToken(); // Fetch a new one
+      if (csrfToken) {
+        originalRequest.headers['X-CSRF-Token'] = csrfToken;
+        return uploadApi(originalRequest);
+      }
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      error.message = 'La requête a pris trop de temps. Veuillez réessayer.';
+    } else if (!error.response) {
+      error.message = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

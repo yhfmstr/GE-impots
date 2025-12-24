@@ -1,0 +1,13 @@
+{
+  "name": "ge-impots-marketplace",
+  "owner": {
+    "name": "GE-Impots Assistant"
+  },
+  "plugins": [
+    {
+      "name": "ge-impots-expert",
+      "source": "./ge-impots-expert",
+      "description": "Expert fiscal pour la déclaration d'impôts de Genève, Suisse. Aide au remplissage et à l'optimisation de la déclaration fiscale genevoise."
+    }
+  ]
+}

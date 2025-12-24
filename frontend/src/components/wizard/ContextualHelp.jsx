@@ -106,7 +106,7 @@ export default function ContextualHelp({ fieldName, customHelp, compact = true }
       <div className="relative inline-block">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="p-1 rounded-full text-muted-foreground hover:text-text-secondary hover:bg-muted transition-colors"
           title="Aide"
         >
           <HelpCircle className="w-4 h-4" />
@@ -121,27 +121,27 @@ export default function ContextualHelp({ fieldName, customHelp, compact = true }
             />
 
             {/* Popover */}
-            <div className="absolute right-0 top-full mt-1 z-50 w-72 bg-white rounded-lg shadow-lg border border-gray-200 p-4">
+            <div className="absolute right-0 top-full mt-1 z-50 w-72 bg-card rounded-lg shadow-lg border border-border p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <h4 className="font-medium text-gray-900">
+                <h4 className="font-medium text-foreground">
                   {helpContent?.title || fieldName}
                 </h4>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-text-secondary"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-text-secondary mb-3">
                 {helpContent?.content || customHelp}
               </p>
 
               {(helpContent?.tip || customHelp) && (
-                <div className="flex items-start gap-2 bg-amber-50 rounded p-2 mb-3">
-                  <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">
+                <div className="flex items-start gap-2 bg-warning-light rounded p-2 mb-3">
+                  <Lightbulb className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-warning">
                     {helpContent?.tip || customHelp}
                   </p>
                 </div>
@@ -152,7 +152,7 @@ export default function ContextualHelp({ fieldName, customHelp, compact = true }
                   href={helpContent.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
                 >
                   En savoir plus
                   <ExternalLink className="w-3 h-3" />
@@ -167,23 +167,23 @@ export default function ContextualHelp({ fieldName, customHelp, compact = true }
 
   // Full inline mode
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+    <div className="bg-muted rounded-lg p-4 border border-border">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <HelpCircle className="w-4 h-4 text-blue-600" />
+        <div className="w-8 h-8 rounded-full bg-info-light flex items-center justify-center flex-shrink-0">
+          <HelpCircle className="w-4 h-4 text-info" />
         </div>
         <div className="flex-1">
-          <h4 className="font-medium text-gray-900 mb-1">
+          <h4 className="font-medium text-foreground mb-1">
             {helpContent?.title || fieldName}
           </h4>
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-text-secondary mb-2">
             {helpContent?.content || customHelp}
           </p>
 
           {(helpContent?.tip || customHelp) && (
-            <div className="flex items-start gap-2 bg-amber-50 rounded p-2 mb-2">
-              <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
+            <div className="flex items-start gap-2 bg-warning-light rounded p-2 mb-2">
+              <Lightbulb className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-warning">
                 {helpContent?.tip || customHelp}
               </p>
             </div>
@@ -194,7 +194,7 @@ export default function ContextualHelp({ fieldName, customHelp, compact = true }
               href={helpContent.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-700"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80"
             >
               En savoir plus
               <ExternalLink className="w-3 h-3" />
@@ -215,9 +215,9 @@ export function HelpTooltip({ children, text }) {
   return (
     <div className="relative group inline-flex items-center gap-1">
       {children}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50">
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 border border-border shadow-md">
         {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-popover" />
       </div>
     </div>
   );

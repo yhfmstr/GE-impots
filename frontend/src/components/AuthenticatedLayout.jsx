@@ -55,13 +55,20 @@ export function AuthenticatedLayout({ children }) {
   const location = useLocation();
   const { profile } = useAuth();
   const breadcrumbs = getBreadcrumbs(location.pathname);
-  
+
   // Get current page title
   const currentPageTitle = routeLabels[location.pathname] || 'Page';
 
   return (
     <ChatProvider>
       <SidebarProvider>
+        {/* Skip to main content link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Aller au contenu principal
+        </a>
         <AppSidebar />
         <SidebarInset>
           {/* Header with sidebar trigger and breadcrumbs */}
@@ -99,11 +106,11 @@ export function AuthenticatedLayout({ children }) {
           </header>
 
           {/* Main content area */}
-          <div className="flex flex-1 flex-col gap-4 overflow-auto isolate">
+          <main id="main-content" className="flex flex-1 flex-col gap-4 overflow-auto isolate" tabIndex={-1}>
             <div className="flex-1 overflow-hidden">
               {children}
             </div>
-          </div>
+          </main>
         </SidebarInset>
         <ChatWidget />
       </SidebarProvider>

@@ -1,24 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { getClient, getModel } from './anthropicClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Lazy client initialization
-let client = null;
-function getClient() {
-  if (!client) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log('API Key available:', !!apiKey, apiKey?.substring(0,15) + '...');
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not set in environment variables');
-    }
-    client = new Anthropic({ apiKey });
-  }
-  return client;
-}
 
 // Load agent prompts from plugin
 const AGENTS_PATH = join(__dirname, '../../../.claude/plugins/ge-impots-expert/agents');
@@ -70,7 +56,7 @@ export async function chat(message, context = [], agentName = 'tax-coordinator')
 
   try {
     const response = await getClient().messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: getModel(),
       max_tokens: 4096,
       system: systemPrompt,
       messages: messages
@@ -81,7 +67,6 @@ export async function chat(message, context = [], agentName = 'tax-coordinator')
       usage: response.usage
     };
   } catch (error) {
-    console.error('Claude API error:', error.message);
     throw error;
   }
 }
@@ -95,7 +80,7 @@ Extrayez les informations structurées de ce document de type: ${documentType}`;
 
   try {
     const response = await getClient().messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: getModel(),
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: documentContent }]
@@ -106,7 +91,6 @@ Extrayez les informations structurées de ce document de type: ${documentType}`;
       usage: response.usage
     };
   } catch (error) {
-    console.error('Claude API error:', error.message);
     throw error;
   }
 }

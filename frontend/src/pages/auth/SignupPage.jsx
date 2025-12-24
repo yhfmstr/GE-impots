@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,9 +61,16 @@ export default function SignupPage() {
     try {
       await signUp(email, password);
       setSuccess(true);
+      toast.success('Compte créé!', {
+        description: 'Vérifiez votre email pour activer votre compte'
+      });
     } catch (err) {
       console.error('Signup error:', err);
-      setError(getErrorMessage(err.message));
+      const errorMessage = getErrorMessage(err.message);
+      setError(errorMessage);
+      toast.error('Échec de l\'inscription', {
+        description: errorMessage
+      });
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,10 +29,17 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
+      toast.success('Connexion réussie', {
+        description: 'Bienvenue sur GE-Impôts'
+      });
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
-      setError(getErrorMessage(err.message));
+      const errorMessage = getErrorMessage(err.message);
+      setError(errorMessage);
+      toast.error('Échec de la connexion', {
+        description: errorMessage
+      });
     } finally {
       setLoading(false);
     }

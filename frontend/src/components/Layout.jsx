@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { MessageSquare, FileText, Upload, Calculator, Sun, Moon, User, LogOut, Settings, Shield, LogIn } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/lib/auth';
@@ -27,11 +28,21 @@ export default function Layout({ children }) {
 
   const handleSignOut = async () => {
     await signOut();
+    toast.success('Déconnexion réussie', {
+      description: 'À bientôt!'
+    });
     navigate('/');
   };
 
   return (
     <div className="min-h-screen bg-muted">
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Aller au contenu principal
+      </a>
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,14 +71,31 @@ export default function Layout({ children }) {
                 </Link>
               ))}
 
+              {/* Admin Link - Only for admins */}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    location.pathname.startsWith('/admin')
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                      : 'text-text-secondary hover:bg-secondary'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
+
               {/* Theme Toggle */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={toggleTheme}
-                className="ml-2 p-2 rounded-lg text-text-secondary hover:bg-secondary transition-colors"
+                className="ml-2"
                 title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
               >
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
 
               {/* User Menu / Login Button */}
               {isConfigured ? (
@@ -145,6 +173,21 @@ export default function Layout({ children }) {
             </Link>
           ))}
 
+          {/* Mobile Admin Link */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs ${
+                location.pathname.startsWith('/admin')
+                  ? 'text-purple-600'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <Shield className="w-5 h-5" />
+              Admin
+            </Link>
+          )}
+
           {/* Mobile User/Login */}
           {isConfigured && (
             isAuthenticated ? (
@@ -167,18 +210,19 @@ export default function Layout({ children }) {
           )}
 
           {/* Mobile Theme Toggle */}
-          <button
+          <Button
+            variant="ghost"
             onClick={toggleTheme}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs text-muted-foreground"
+            className="flex flex-col items-center gap-1 px-3 py-2 h-auto text-xs text-muted-foreground"
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             {isDark ? 'Clair' : 'Sombre'}
-          </button>
+          </Button>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-8" tabIndex={-1}>
         {children}
       </main>
     </div>
