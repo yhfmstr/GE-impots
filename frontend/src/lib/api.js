@@ -7,21 +7,33 @@ export const API_URL = isProduction
   ? '/api'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3002/api');
 
-// CSRF token storage
+// CSRF token storage with race condition prevention
 let csrfToken = null;
+let csrfTokenPromise = null;
 
-// Fetch CSRF token from server
+// Fetch CSRF token from server (with deduplication)
 async function fetchCsrfToken() {
-  try {
-    const response = await axios.get(`${API_URL}/csrf-token`, {
-      withCredentials: true
-    });
-    csrfToken = response.data.token;
-    return csrfToken;
-  } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
-    return null;
+  // If already fetching, return the existing promise to prevent race conditions
+  if (csrfTokenPromise) {
+    return csrfTokenPromise;
   }
+
+  csrfTokenPromise = (async () => {
+    try {
+      const response = await axios.get(`${API_URL}/csrf-token`, {
+        withCredentials: true
+      });
+      csrfToken = response.data.token;
+      return csrfToken;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+      return null;
+    } finally {
+      csrfTokenPromise = null; // Clear promise after completion
+    }
+  })();
+
+  return csrfTokenPromise;
 }
 
 // Create axios instance with default config

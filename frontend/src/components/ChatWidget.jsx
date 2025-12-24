@@ -27,11 +27,16 @@ export default function ChatWidget() {
   const abortControllerRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Load messages on mount
+  // Load messages on mount with error handling
   useEffect(() => {
-    const saved = loadSecure(STORAGE_KEYS.CHAT_HISTORY, []);
-    if (saved.length > 0 && saved[0]?.messages) {
-      setMessages(saved[0].messages);
+    try {
+      const saved = loadSecure(STORAGE_KEYS.CHAT_HISTORY, []);
+      if (saved.length > 0 && saved[0]?.messages) {
+        setMessages(saved[0].messages);
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      // Fall back to welcome message (default state)
     }
   }, []);
 
@@ -42,6 +47,24 @@ export default function ChatWidget() {
       setHasUnread(false);
     }
   }, [isOpen]);
+
+  // Keyboard shortcut (Ctrl+/ or Cmd+/) to toggle chat
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check for Ctrl+/ (Windows/Linux) or Cmd+/ (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setIsOpen(prev => !prev);
+      }
+      // Escape to close
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, setIsOpen]);
 
   // Scroll to bottom on new messages
   const scrollToBottom = useCallback(() => {
@@ -139,7 +162,8 @@ export default function ChatWidget() {
           "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
           isOpen && "scale-0 opacity-0"
         )}
-        aria-label="Ouvrir l'assistant"
+        aria-label="Ouvrir l'assistant (Ctrl+/)"
+        title="Assistant fiscal (Ctrl+/)"
       >
         <MessageCircle className="w-6 h-6" />
         {hasUnread && (
@@ -182,8 +206,13 @@ export default function ChatWidget() {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Messages - aria-live for screen readers */}
+        <div
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          role="log"
+          aria-live="polite"
+          aria-label="Messages de conversation"
+        >
           {messages.map((msg, idx) => (
             <div
               key={idx}

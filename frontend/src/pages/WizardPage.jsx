@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,21 @@ export default function WizardPage() {
     const saved = loadSecure(STORAGE_KEYS.WIZARD_PROFILE, null);
     return saved?.profileId || null;
   });
+
+  // Beforeunload warning when wizard is in progress
+  useEffect(() => {
+    if (wizardState !== WIZARD_STATES.IN_PROGRESS) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      // Modern browsers require returnValue to be set
+      e.returnValue = 'Vous avez des données non sauvegardées. Êtes-vous sûr de vouloir quitter?';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [wizardState]);
 
   // Handle profile selection
   const handleSelectProfile = (profileId) => {
@@ -75,6 +90,11 @@ export default function WizardPage() {
   // Go to results
   const goToResults = () => {
     navigate('/results');
+  };
+
+  // Go to home
+  const goHome = () => {
+    navigate('/');
   };
 
   // Render based on state

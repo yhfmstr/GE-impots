@@ -65,10 +65,10 @@ export default function WizardSelector({ onSelectProfile }) {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Trouvons le bon profil
           </h2>
-          <p className="text-gray-600">
+          <p className="text-text-secondary">
             Répondez à quelques questions pour déterminer les sections pertinentes
           </p>
         </div>
@@ -79,31 +79,34 @@ export default function WizardSelector({ onSelectProfile }) {
             {PROFILING_QUESTIONS.map((question, index) => (
               <Card
                 key={question.id}
-                className={profilingAnswers[question.id] ? 'border-green-200 bg-green-50' : ''}
+                className={profilingAnswers[question.id] ? 'border-success bg-success-light' : ''}
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 text-sm flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-full bg-primary-light text-primary text-sm flex items-center justify-center">
                       {index + 1}
                     </span>
                     {question.question}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={question.question}>
                     {question.options.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => handleProfilingAnswer(question.id, option.value)}
-                        className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                        className={`p-3 rounded-lg border-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                           profilingAnswers[question.id] === option.value
-                            ? 'border-red-500 bg-red-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                            ? 'border-primary bg-primary-light'
+                            : 'border-border hover:border-muted-foreground'
                         }`}
+                        role="radio"
+                        aria-checked={profilingAnswers[question.id] === option.value}
+                        aria-label={option.label}
                       >
                         <span className="flex items-center gap-2">
                           {profilingAnswers[question.id] === option.value && (
-                            <Check className="w-4 h-4 text-red-600" />
+                            <Check className="w-4 h-4 text-primary" aria-hidden="true" />
                           )}
                           {option.label}
                         </span>
@@ -122,22 +125,22 @@ export default function WizardSelector({ onSelectProfile }) {
           </div>
         ) : (
           // Suggested Profile
-          <Card className="border-green-300 bg-green-50">
+          <Card className="border-success bg-success-light">
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="w-8 h-8 text-green-600" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/20 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-success" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Profil recommandé
                 </h3>
-                <p className="text-2xl font-bold text-green-700 mb-2">
+                <p className="text-2xl font-bold text-success mb-2">
                   {WIZARD_PROFILES[suggestedProfile].name}
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-text-secondary mb-4">
                   {WIZARD_PROFILES[suggestedProfile].description}
                 </p>
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-6">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
                   <Clock className="w-4 h-4" />
                   <span>Environ {WIZARD_PROFILES[suggestedProfile].estimatedTime} minutes</span>
                 </div>
@@ -162,35 +165,48 @@ export default function WizardSelector({ onSelectProfile }) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           Choisissez votre profil
         </h2>
-        <p className="text-gray-600">
+        <p className="text-text-secondary">
           Sélectionnez le profil correspondant à votre situation pour une déclaration simplifiée
         </p>
       </div>
 
       {/* Profile Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
+        role="listbox"
+        aria-label="Profils disponibles"
+      >
         {Object.values(WIZARD_PROFILES).map((profile) => {
           const IconComponent = ICONS[profile.icon] || FileStack;
 
           return (
             <Card
               key={profile.id}
-              className="cursor-pointer hover:border-red-300 hover:shadow-md transition-all"
+              className="cursor-pointer hover:border-primary hover:shadow-md transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
               onClick={() => handleSelectProfile(profile.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectProfile(profile.id);
+                }
+              }}
+              tabIndex={0}
+              role="option"
+              aria-label={`${profile.name}: ${profile.description}. Environ ${profile.estimatedTime} minutes.`}
             >
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <IconComponent className="w-6 h-6 text-red-600" />
+                  <div className="w-12 h-12 rounded-lg bg-primary-light flex items-center justify-center flex-shrink-0">
+                    <IconComponent className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-foreground mb-1">
                       {profile.name}
                     </h3>
-                    <p className="text-sm text-gray-500 mb-3">
+                    <p className="text-sm text-muted-foreground mb-3">
                       {profile.description}
                     </p>
                     <div className="flex items-center gap-2">
@@ -206,11 +222,11 @@ export default function WizardSelector({ onSelectProfile }) {
                 </div>
 
                 {/* Characteristics */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="mt-4 pt-4 border-t border-border">
                   <ul className="space-y-1">
                     {profile.characteristics.slice(0, 3).map((char, idx) => (
-                      <li key={idx} className="text-xs text-gray-500 flex items-center gap-1.5">
-                        <Check className="w-3 h-3 text-green-500" />
+                      <li key={idx} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-success" />
                         {char}
                       </li>
                     ))}
@@ -226,7 +242,7 @@ export default function WizardSelector({ onSelectProfile }) {
       <div className="text-center">
         <button
           onClick={() => setShowProfiling(true)}
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-red-600 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
         >
           <HelpCircle className="w-4 h-4" />
           Je ne sais pas quel profil choisir

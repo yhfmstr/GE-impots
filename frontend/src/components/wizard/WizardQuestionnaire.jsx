@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, Save, Sparkles } from 'lucide-react';
 import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import SuggestionIndicator, { SuggestionBadge } from '@/components/SuggestionIndicator';
 import AutoFillPanel from '@/components/AutoFillPanel';
 import ContextualHelp from './ContextualHelp';
@@ -203,10 +214,10 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
   };
 
   const nextSection = () => {
-    // Mark current as completed
-    if (!completedSections.includes(currentSection.id)) {
-      setCompletedSections([...completedSections, currentSection.id]);
-    }
+    // Mark current as completed using functional updater to avoid stale closure
+    setCompletedSections(prev =>
+      prev.includes(currentSection.id) ? prev : [...prev, currentSection.id]
+    );
 
     if (isLastSection) {
       onComplete?.(formData);
@@ -237,15 +248,15 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
       />
 
       {/* Main Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-card rounded-xl shadow-sm border border-border">
         {/* Section Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 {currentSection?.title}
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {SECTION_METADATA[currentSection?.id]?.description}
               </p>
             </div>
@@ -260,8 +271,8 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
           </div>
 
           {sectionSuggestions.length > 0 && (
-            <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
-              <Sparkles className="w-4 h-4" />
+            <div className="mt-2 flex items-center gap-2 text-sm text-info">
+              <Sparkles className="h-4 w-4" />
               <span>{sectionSuggestions.length} suggestion{sectionSuggestions.length > 1 ? 's' : ''} pour cette section</span>
             </div>
           )}
@@ -269,7 +280,7 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
 
         {/* AutoFill Panel */}
         {showAutoFillPanel && (
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="p-4 border-b border-border bg-muted">
             <AutoFillPanel
               suggestions={suggestions}
               onAccept={handleAcceptSuggestion}
@@ -291,9 +302,9 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
             return (
               <div key={field.name}>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-secondary">
                     {field.label}
-                    {field.max && <span className="text-gray-400">(max {field.max.toLocaleString()} CHF)</span>}
+                    {field.max && <span className="text-text-muted">(max {field.max.toLocaleString()} CHF)</span>}
                     <ContextualHelp fieldName={field.name} customHelp={customHelp} />
                   </label>
                   {hasSuggestion && (
@@ -317,66 +328,87 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
                 )}
 
                 {field.type === 'text' && (
-                  <input
+                  <Input
                     type="text"
                     value={formData[field.name] || ''}
                     onChange={(e) => handleChange(field.name, e.target.value)}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                      hasSuggestion ? 'border-dashed border-blue-300 mt-2' : 'border-gray-300'
-                    }`}
+                    className={cn(
+                      hasSuggestion && 'border-dashed border-info mt-2'
+                    )}
                   />
                 )}
 
                 {field.type === 'number' && (
-                  <input
+                  <Input
                     type="number"
                     value={formData[field.name] || ''}
                     onChange={(e) => handleChange(field.name, parseFloat(e.target.value) || 0)}
                     max={field.max}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                      hasSuggestion ? 'border-dashed border-blue-300 mt-2' : 'border-gray-300'
-                    }`}
+                    className={cn(
+                      hasSuggestion && 'border-dashed border-info mt-2'
+                    )}
                   />
                 )}
 
                 {field.type === 'select' && (
-                  <select
+                  <Select
                     value={formData[field.name] || ''}
-                    onChange={(e) => handleChange(field.name, e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    onValueChange={(value) => handleChange(field.name, value)}
                   >
-                    <option value="">Sélectionner...</option>
-                    {field.options.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionner..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
 
                 {field.type === 'boolean' && (
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => handleChange(field.name, true)}
-                      className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
-                        formData[field.name] === true
-                          ? 'border-red-500 bg-red-50 text-red-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      Oui
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleChange(field.name, false)}
-                      className={`flex-1 p-3 rounded-lg border-2 transition-colors ${
-                        formData[field.name] === false
-                          ? 'border-red-500 bg-red-50 text-red-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      Non
-                    </button>
-                  </div>
+                  <RadioGroup
+                    value={formData[field.name] === true ? 'true' : formData[field.name] === false ? 'false' : ''}
+                    onValueChange={(value) => handleChange(field.name, value === 'true')}
+                    className="flex gap-4"
+                  >
+                    <div className="flex-1">
+                      <RadioGroupItem
+                        value="true"
+                        id={`${field.name}-yes`}
+                        className="peer sr-only"
+                      />
+                      <Label
+                        htmlFor={`${field.name}-yes`}
+                        className={cn(
+                          'flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-colors',
+                          formData[field.name] === true
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border hover:border-muted-foreground'
+                        )}
+                      >
+                        Oui
+                      </Label>
+                    </div>
+                    <div className="flex-1">
+                      <RadioGroupItem
+                        value="false"
+                        id={`${field.name}-no`}
+                        className="peer sr-only"
+                      />
+                      <Label
+                        htmlFor={`${field.name}-no`}
+                        className={cn(
+                          'flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-colors',
+                          formData[field.name] === false
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border hover:border-muted-foreground'
+                        )}
+                      >
+                        Non
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 )}
               </div>
             );
@@ -384,43 +416,43 @@ export default function WizardQuestionnaire({ profileId, onComplete, onExit }) {
         </div>
 
         {/* Navigation */}
-        <div className="p-4 border-t border-gray-200 flex justify-between">
+        <div className="p-4 border-t border-border flex justify-between">
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="ghost"
               onClick={prevSection}
               disabled={currentSectionIndex === 0}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4 mr-2" />
               Précédent
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={onExit}
-              className="px-4 py-2 text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground"
             >
               Quitter l'assistant
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             onClick={nextSection}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
             {saving ? (
-              <Save className="w-4 h-4 animate-pulse" />
+              <Save className="h-4 w-4 animate-pulse" />
             ) : isLastSection ? (
               <>
-                <Check className="w-4 h-4" />
+                <Check className="h-4 w-4 mr-2" />
                 Terminer
               </>
             ) : (
               <>
                 Suivant
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4 ml-2" />
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

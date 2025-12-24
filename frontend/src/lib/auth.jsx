@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
       }
       return data;
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('Exception fetching profile:', err);
       return null;
     }
   }, []);
@@ -38,27 +38,44 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const profileData = await fetchProfile(session.user.id);
-        setProfile(profileData);
-      }
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    // Get initial session with error handling
+    supabase.auth.getSession()
+      .then(async ({ data: { session }, error: sessionError }) => {
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          setError('Impossible de récupérer la session. Veuillez rafraîchir la page.');
+          setLoading(false);
+          return;
+        }
         setUser(session?.user ?? null);
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id);
           setProfile(profileData);
-        } else {
-          setProfile(null);
         }
-        setError(null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Session initialization failed:', err);
+        setError('Erreur de connexion au service d\'authentification.');
+        setLoading(false);
+      });
+
+    // Listen for auth changes with error handling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        try {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            const profileData = await fetchProfile(session.user.id);
+            setProfile(profileData);
+          } else {
+            setProfile(null);
+          }
+          setError(null);
+        } catch (err) {
+          console.error('Auth state change error:', err);
+          setError('Erreur lors du changement d\'état d\'authentification.');
+        }
       }
     );
 
