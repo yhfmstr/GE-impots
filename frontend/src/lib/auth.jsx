@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase, db, isSupabaseConfigured } from './supabase';
 import { checkProfileFreshness } from './profileFreshness';
+import { useDeclarationYearStore } from '@/stores/declarationYearStore';
 
 const AuthContext = createContext(undefined);
 
@@ -51,6 +52,13 @@ export function AuthProvider({ children }) {
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id);
           setProfile(profileData);
+
+          // Initialize declaration store from Supabase
+          try {
+            await useDeclarationYearStore.getState().initialize();
+          } catch (err) {
+            console.error('Error initializing declarations:', err);
+          }
         }
         setLoading(false);
       })
@@ -68,8 +76,19 @@ export function AuthProvider({ children }) {
           if (session?.user) {
             const profileData = await fetchProfile(session.user.id);
             setProfile(profileData);
+
+            // Initialize declaration store on sign in
+            if (event === 'SIGNED_IN') {
+              try {
+                await useDeclarationYearStore.getState().initialize();
+              } catch (err) {
+                console.error('Error initializing declarations:', err);
+              }
+            }
           } else {
             setProfile(null);
+            // Reset declaration store on sign out
+            useDeclarationYearStore.getState().reset();
           }
           setError(null);
         } catch (err) {

@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { useChat } from '@/lib/chatContext';
 import { loadSecure, saveSecure, STORAGE_KEYS } from '@/lib/storage';
 import { uploadApi } from '@/lib/api';
+import { db, storage } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -15,54 +16,23 @@ import {
   MessageSquare,
   Calculator,
   Sparkles,
-  Clock,
   CheckCircle2,
-  AlertCircle,
   ArrowRight,
   Calendar,
-  TrendingUp,
   FolderOpen,
   User,
   RefreshCw,
 } from 'lucide-react';
-import { TaxHistorySection, ComparisonPanel } from '@/components/dashboard';
+import { TaxHistorySection, ComparisonPanel, YearSelector, DeclarationStatusCard } from '@/components/dashboard';
 import { useTaxHistoryStore } from '@/stores/taxHistoryStore';
+import { useDeclarationYearStore } from '@/stores/declarationYearStore';
 
-// Calculate declaration completion percentage
-function calculateProgress(taxData) {
-  if (!taxData) return 0;
-
-  const sections = [
-    { key: 'personal', weight: 15 },
-    { key: 'income', weight: 25 },
-    { key: 'deductions', weight: 25 },
-    { key: 'wealth', weight: 20 },
-    { key: 'grossSalary', weight: 15 },
-  ];
-
-  let completed = 0;
-  sections.forEach(({ key, weight }) => {
-    if (taxData[key] && Object.keys(taxData[key]).length > 0) {
-      completed += weight;
-    } else if (taxData[key] !== undefined && taxData[key] !== null && taxData[key] !== '') {
-      completed += weight;
-    }
-  });
-
-  return Math.min(100, completed);
-}
-
-// Get declaration status
-function getDeclarationStatus(progress) {
-  if (progress === 0) return { label: 'Non commencée', color: 'text-muted-foreground', icon: Clock };
-  if (progress < 50) return { label: 'En cours', color: 'text-warning', icon: AlertCircle };
-  if (progress < 100) return { label: 'Presque terminée', color: 'text-info', icon: TrendingUp };
-  return { label: 'Complète', color: 'text-success', icon: CheckCircle2 };
-}
-
-// Calculate days until deadline
-function getDaysUntilDeadline() {
-  const deadline = new Date('2026-03-31');
+// Calculate days until deadline for a given tax year
+function getDaysUntilDeadline(taxYear) {
+  // Tax declaration deadline is March 31 of the year AFTER the tax year
+  // e.g., for tax year 2024, deadline is March 31, 2025
+  const deadlineYear = (taxYear || new Date().getFullYear() - 1) + 1;
+  const deadline = new Date(`${deadlineYear}-03-31`);
   const today = new Date();
   const diffTime = deadline - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -104,19 +74,26 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   // Tax history store
-  const {
-    getAvailableYears,
-    getMostRecentDeclaration
-  } = useTaxHistoryStore();
+  const { getAvailableYears: getHistoryYears } = useTaxHistoryStore();
 
-  // Load declaration data from storage
-  const taxData = loadSecure(STORAGE_KEYS.TAX_DATA) || {};
+  // Declaration year store
+  const {
+    activeYear,
+    getCompletionPercent,
+    startDeclaration,
+    reopenDeclaration,
+    isLoading: declarationLoading,
+    isInitialized
+  } = useDeclarationYearStore();
+
+  // Load extractions list from storage
   const extractions = loadSecure(STORAGE_KEYS.EXTRACTIONS) || [];
 
-  const progress = calculateProgress(taxData);
-  const status = getDeclarationStatus(progress);
-  const daysLeft = getDaysUntilDeadline();
-  const StatusIcon = status.icon;
+  // Get active year's progress
+  const progress = getCompletionPercent(activeYear);
+
+  // Calculate days until deadline for active year
+  const daysLeft = getDaysUntilDeadline(activeYear);
 
   // Profile completion
   const profileStatus = useMemo(() => calculateProfileCompletion(profile), [profile]);
@@ -124,15 +101,45 @@ export default function DashboardPage() {
     ? new Date(profile.updated_at).toLocaleDateString('fr-CH')
     : null;
 
-  // Tax history
-  const availableYears = getAvailableYears();
-  const [selectedYear, setSelectedYear] = useState(
-    availableYears.length > 0 ? availableYears[0] : new Date().getFullYear() - 1
+  // Tax history (for historical documents)
+  const historyYears = getHistoryYears();
+  const [selectedHistoryYear, setSelectedHistoryYear] = useState(
+    historyYears.length > 0 ? historyYears[0] : new Date().getFullYear() - 1
   );
-  const mostRecentDeclaration = getMostRecentDeclaration();
 
   // Get user's first name for greeting
   const firstName = profile?.first_name || profile?.email?.split('@')[0] || 'Utilisateur';
+
+  // Declaration action handlers (async - sync with Supabase)
+  const handleStartDeclaration = async (year) => {
+    try {
+      await startDeclaration(year);
+      navigate('/wizard');
+    } catch (error) {
+      toast.error('Erreur lors du démarrage de la déclaration', {
+        description: error.message
+      });
+    }
+  };
+
+  const handleContinueDeclaration = (year) => {
+    navigate('/wizard');
+  };
+
+  const handleViewDeclaration = (year) => {
+    navigate('/results');
+  };
+
+  const handleReopenDeclaration = async (year) => {
+    try {
+      await reopenDeclaration(year);
+      navigate('/wizard');
+    } catch (error) {
+      toast.error('Erreur lors de la réouverture', {
+        description: error.message
+      });
+    }
+  };
 
   // Handlers
   const handleUploadClick = () => navigate('/documents');
@@ -147,6 +154,7 @@ export default function DashboardPage() {
   // Handle file drop from TaxHistorySection
   const handleFileDrop = useCallback(async (files) => {
     const { importDeclarationFromExtraction, importBordereauFromExtraction } = useTaxHistoryStore.getState();
+    const { ensureDeclaration } = useDeclarationYearStore.getState();
 
     for (const file of files) {
       try {
@@ -155,6 +163,15 @@ export default function DashboardPage() {
 
         toast.loading(`Analyse de ${file.name}...`, { id: `upload-${file.name}` });
 
+        // Ensure declaration exists for active year (get or create)
+        let declaration;
+        try {
+          declaration = await ensureDeclaration(activeYear);
+        } catch (declErr) {
+          console.error('Error ensuring declaration:', declErr);
+          // Continue without declaration_id if Supabase fails
+        }
+
         const response = await uploadApi.post('/documents/extract-auto', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -162,14 +179,45 @@ export default function DashboardPage() {
         if (response.data.success && response.data.extractedData) {
           const { detectedType, extractedData } = response.data;
 
-          // Save to extractions list
+          // Upload to Supabase Storage and save document record
+          if (user?.id) {
+            try {
+              // Upload file to storage
+              const { data: uploadData, error: uploadError } = await storage.uploadDocument(
+                user.id,
+                activeYear,
+                file
+              );
+
+              if (!uploadError && uploadData?.path) {
+                // Create document record in database
+                await db.createDocument({
+                  profile_id: user.id,
+                  declaration_id: declaration?.id || null,
+                  file_name: file.name,
+                  file_type: detectedType || 'unknown',
+                  file_size: file.size,
+                  storage_path: uploadData.path,
+                  extracted_data: extractedData,
+                  extraction_confidence: response.data.confidence || 0.9,
+                  extraction_status: 'completed'
+                });
+              }
+            } catch (storageErr) {
+              console.error('Error saving document to Supabase:', storageErr);
+              // Continue - extraction still worked
+            }
+          }
+
+          // Save to extractions list with the active year scope (localStorage backup)
           const saved = loadSecure(STORAGE_KEYS.EXTRACTIONS, []);
           const newExtraction = {
             id: Date.now(),
             type: detectedType,
             fileName: file.name,
             extractedData,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            declarationYear: activeYear // Scope to active year
           };
           saveSecure(STORAGE_KEYS.EXTRACTIONS, [...saved, newExtraction]);
 
@@ -178,24 +226,24 @@ export default function DashboardPage() {
             importDeclarationFromExtraction(extractedData);
             toast.success(`Déclaration ${extractedData.taxYear || ''} importée`, {
               id: `upload-${file.name}`,
-              description: 'Les données ont été ajoutées à votre historique fiscal'
+              description: `Associée à votre déclaration ${activeYear}`
             });
           } else if (detectedType === 'bordereau-icc') {
             importBordereauFromExtraction(extractedData, 'icc');
             toast.success(`Bordereau ICC ${extractedData.taxYear || ''} importé`, {
               id: `upload-${file.name}`,
-              description: 'Le bordereau cantonal a été ajouté'
+              description: `Associé à votre déclaration ${activeYear}`
             });
           } else if (detectedType === 'bordereau-ifd') {
             importBordereauFromExtraction(extractedData, 'ifd');
             toast.success(`Bordereau IFD ${extractedData.taxYear || ''} importé`, {
               id: `upload-${file.name}`,
-              description: 'Le bordereau fédéral a été ajouté'
+              description: `Associé à votre déclaration ${activeYear}`
             });
           } else {
             toast.success(`Document analysé: ${detectedType}`, {
               id: `upload-${file.name}`,
-              description: 'Consultez la page Documents pour plus de détails'
+              description: `Associé à votre déclaration ${activeYear}`
             });
           }
         } else {
@@ -211,7 +259,7 @@ export default function DashboardPage() {
         });
       }
     }
-  }, []);
+  }, [activeYear, user?.id]);
 
   // Quick actions based on progress
   const quickActions = [
@@ -248,18 +296,30 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Welcome Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Bonjour, {firstName}
-        </h1>
-        <p className="text-muted-foreground">
-          Déclaration fiscale 2024 - Canton de Genève
-        </p>
+      {/* Welcome Header with Year Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Bonjour, {firstName}
+          </h1>
+          <p className="text-muted-foreground">
+            Canton de Genève
+          </p>
+        </div>
+        <YearSelector />
       </div>
 
+      {/* Active Year Declaration Card */}
+      <DeclarationStatusCard
+        year={activeYear}
+        onStart={handleStartDeclaration}
+        onContinue={handleContinueDeclaration}
+        onView={handleViewDeclaration}
+        onReopen={handleReopenDeclaration}
+      />
+
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Profile Completion */}
         <Card className={profileStatus.percent < 100 ? 'border-amber-200 dark:border-amber-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -288,31 +348,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Declaration Progress */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Déclaration 2024</CardTitle>
-            <StatusIcon className={`h-4 w-4 ${status.color}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{progress}%</div>
-            <Progress value={progress} className="mt-2" />
-            <p className={`text-xs mt-2 ${status.color}`}>
-              {status.label}
-            </p>
-          </CardContent>
-        </Card>
-
         {/* Days Until Deadline */}
-        <Card>
+        <Card className={daysLeft <= 30 ? 'border-red-200 dark:border-red-800' : daysLeft <= 60 ? 'border-amber-200 dark:border-amber-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Délai de dépôt</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Délai {activeYear}</CardTitle>
+            <Calendar className={`h-4 w-4 ${daysLeft <= 30 ? 'text-red-500' : daysLeft <= 60 ? 'text-amber-500' : 'text-muted-foreground'}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{daysLeft}</div>
+            <div className={`text-2xl font-bold ${daysLeft <= 30 ? 'text-red-600' : daysLeft <= 60 ? 'text-amber-600' : ''}`}>
+              {daysLeft > 0 ? daysLeft : 'Échu'}
+            </div>
             <p className="text-xs text-muted-foreground mt-2">
-              jours restants (31 mars 2026)
+              {daysLeft > 0 ? `jours restants (31 mars ${activeYear + 1})` : `Délai dépassé (31 mars ${activeYear + 1})`}
             </p>
           </CardContent>
         </Card>
@@ -397,8 +444,8 @@ export default function DashboardPage() {
 
         {/* Comparison Panel */}
         <ComparisonPanel
-          selectedYear={selectedYear}
-          previousYear={selectedYear > 0 ? selectedYear - 1 : null}
+          selectedYear={selectedHistoryYear}
+          previousYear={selectedHistoryYear > 0 ? selectedHistoryYear - 1 : null}
         />
       </div>
 
