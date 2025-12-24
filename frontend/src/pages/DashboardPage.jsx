@@ -69,7 +69,7 @@ function calculateProfileCompletion(profile) {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { openChat } = useChat();
   const navigate = useNavigate();
 

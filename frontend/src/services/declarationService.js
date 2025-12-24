@@ -27,12 +27,12 @@ const STATUS_MAP = {
 };
 
 /**
- * Get available tax years (current year - 1 and previous 2 years)
+ * Get available tax years (current year and previous 2 years)
+ * Includes current year for users who want to prepare early
  */
 export function getAvailableTaxYears() {
   const currentYear = new Date().getFullYear();
-  const declarationYear = currentYear - 1;
-  return [declarationYear, declarationYear - 1, declarationYear - 2];
+  return [currentYear, currentYear - 1, currentYear - 2];
 }
 
 /**
