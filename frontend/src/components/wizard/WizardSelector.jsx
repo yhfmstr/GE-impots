@@ -236,17 +236,64 @@ export default function WizardSelector({ onSelectProfile }) {
             </Card>
           );
         })}
-      </div>
 
-      {/* Help link */}
-      <div className="text-center">
-        <button
+        {/* Questionnaire Card - Help me find my profile */}
+        <Card
+          className="cursor-pointer hover:border-primary hover:shadow-md transition-all focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 border-dashed"
           onClick={() => setShowProfiling(true)}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setShowProfiling(true);
+            }
+          }}
+          tabIndex={0}
+          role="option"
+          aria-label="Questionnaire: Répondez à quelques questions pour trouver le profil adapté à votre situation."
         >
-          <HelpCircle className="w-4 h-4" />
-          Je ne sais pas quel profil choisir
-        </button>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <HelpCircle className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground mb-1">
+                  Questionnaire
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Répondez à quelques questions pour trouver le profil adapté
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    <Clock className="w-3 h-3 mr-1" />
+                    ~2 min
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {PROFILING_QUESTIONS.length} questions
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Characteristics */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <ul className="space-y-1">
+                <li className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-success" />
+                  Profil personnalisé
+                </li>
+                <li className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-success" />
+                  Questions simples
+                </li>
+                <li className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-success" />
+                  Recommandation automatique
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileText, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { loadSecure, STORAGE_KEYS, validateTaxData } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TAX_YEAR } from '@/config/taxYear';
@@ -52,8 +52,7 @@ export default function GuidePage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <FileText className="w-7 h-7 text-primary" />
+        <h1 className="text-2xl font-bold tracking-tight">
           Déclaration d'impôts {TAX_YEAR}
         </h1>
         <p className="text-muted-foreground">
